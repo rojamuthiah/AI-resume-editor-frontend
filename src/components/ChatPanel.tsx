@@ -3,8 +3,9 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
 import ChatInput from "./chatInput";
+import TypingIndicator from "./typingIndicator";
 import { askAI, editAI } from "../api/ai";
-import type { ConversationMessage } from "../types/conversation";
+import type { ConversationMessage } from "../types/conversations";
 
 interface ChatPanelProps {
   conversation: ConversationMessage[];
@@ -17,25 +18,6 @@ interface ChatPanelProps {
   onSelectConversation: (id: string | null) => void;
   onConversationCreated: (meta: { id: string; title: string }) => void;
 }
-
-/* =======================
-   AI TYPING INDICATOR
-======================= */
-const TypingIndicator = () => (
-  <div className="flex items-start gap-3">
-    <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-semibold shadow">
-      AI
-    </div>
-
-    <div className="bg-white border rounded-2xl px-4 py-3 shadow-sm">
-      <div className="flex gap-1">
-        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:150ms]" />
-        <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:300ms]" />
-      </div>
-    </div>
-  </div>
-);
 
 const ChatPanel: React.FC<ChatPanelProps> = ({
   conversation,
@@ -73,32 +55,46 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
   const sendMessage = async (text: string) => {
     if (!text.trim() || !templateKey) return;
-
+  
     setConversation((prev) => [
       ...prev,
       { role: "user", type: mode, text },
     ]);
-
+  
     setPreviewJson(null);
     setLoading(true);
-
+  
     try {
-      const res =
-        mode === "ask"
-          ? await askAI(text, resumeJson, templateKey, conversationId)
-          : await editAI(text, resumeJson, templateKey, conversationId);
-
-      setConversation((prev) => [
-        ...prev,
-        { role: "ai", type: mode, text: res.message },
-      ]);
-
+      let res;
+      if (mode === "ask") {
+        res = await askAI(text, resumeJson, templateKey, conversationId);
+        setConversation((prev) => [
+          ...prev,
+          { role: "ai", type: "ask", text: res.message },
+        ]);
+      } else {
+        // Edit mode - call editAI without resumeJson
+        res = await editAI(text, templateKey, conversationId);
+        setConversation((prev) => [
+          ...prev,
+          { 
+            role: "ai", 
+            type: "edit", 
+            message: res.message,
+            text: res.message.messageinfo 
+          },
+        ]);
+      }
+  
+      // Handle new conversation creation
       if (!conversationId && res.conversationId) {
         onConversationCreated({
           id: res.conversationId,
           title: res.title || text.slice(0, 80),
         });
       }
+    } catch (err) {
+      console.error("Send message error:", err);
     } finally {
       setLoading(false);
     }
@@ -183,37 +179,126 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
             {/* MESSAGE BUBBLE */}
             <div
-              className={`max-w-[70%] px-4 py-3 text-sm leading-relaxed ${
+              className={`max-w-[85%] text-sm leading-relaxed ${
                 m.role === "user"
-                  ? "bg-blue-600 text-white rounded-2xl rounded-br-sm"
+                  ? "bg-blue-600 text-white rounded-2xl rounded-br-sm px-4 py-3"
                   : "bg-white text-gray-800 border rounded-2xl rounded-bl-sm shadow-sm"
               }`}
             >
-              {m.role === "ai" ? (
-                <ReactMarkdown
-                  remarkPlugins={[remarkGfm, remarkBreaks]}
-                  components={{
-                    p: ({ children }) => (
-                      <p className="mb-3 last:mb-0">{children}</p>
-                    ),
-                    ul: ({ children }) => (
-                      <ul className="list-disc pl-5 mb-3 space-y-1">{children}</ul>
-                    ),
-                    ol: ({ children }) => (
-                      <ol className="list-decimal pl-5 mb-3 space-y-1">
-                        {children}
-                      </ol>
-                    ),
-                    li: ({ children }) => <li>{children}</li>,
-                    strong: ({ children }) => (
-                      <strong className="font-semibold">{children}</strong>
-                    ),
-                  }}
-                >
-                  {m.text}
-                </ReactMarkdown>
+              {m.role === "user" ? (
+                // User message
+                <div className="px-4 py-3">{m.text}</div>
+              ) : m.type === "edit" && m.message ? (
+                // EDIT MESSAGE DISPLAY
+                <div className="p-4 space-y-4">
+                  {/* AI Message Info */}
+                  <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
+                    <p className="text-sm text-gray-800 font-medium">{m.message.messageinfo}</p>
+                  </div>
+
+                  {/* Keywords Box (only if present) */}
+                  {m.message.keywords && m.message.keywords.length > 0 && (
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+                      <p className="text-xs font-semibold text-green-800 mb-2">ATS Keywords Matched:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {m.message.keywords.map((keyword: string, idx: number) => (
+                          <span
+                            key={idx}
+                            className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full"
+                          >
+                            {keyword}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Edits Box */}
+                  <div className="space-y-4">
+                    <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Edits:</p>
+                    
+                    {m.message.keys.map((key: string) => {
+                      const edit = m.message.edits[key];
+                      if (!edit) return null;
+
+                      return (
+                        <div key={key} className="border rounded-lg p-4 bg-gray-50">
+                          <p className="text-sm font-semibold text-blue-700 mb-3 capitalize">
+                            {key.replace(/([A-Z])/g, ' $1').trim()}
+                          </p>
+
+                          {/* Before */}
+                          <div className="mb-3">
+                            <p className="text-xs font-medium text-red-600 mb-2">Before:</p>
+                            <ul className="list-disc list-inside space-y-1 text-xs text-gray-700 bg-red-50 p-2 rounded">
+                              {edit.before.map((point: string, idx: number) => (
+                                <li key={idx}>{point}</li>
+                              ))}
+                            </ul>
+                          </div>
+
+                          {/* After */}
+                          <div className="mb-3">
+                            <p className="text-xs font-medium text-green-600 mb-2">After:</p>
+                            <ul className="list-disc list-inside space-y-1 text-xs text-gray-700 bg-green-50 p-2 rounded">
+                              {edit.after.map((point: string, idx: number) => (
+                                <li key={idx}>{point}</li>
+                              ))}
+                            </ul>
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex gap-2 mt-3">
+                            <button
+                              onClick={() => {
+                                // Preview handler - to be implemented
+                                console.log("Preview clicked for", key);
+                              }}
+                              className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition"
+                            >
+                              Preview
+                            </button>
+                            <button
+                              onClick={() => {
+                                // Accept handler - to be implemented
+                                console.log("Accept clicked for", key);
+                              }}
+                              className="px-3 py-1.5 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition"
+                            >
+                              Accept
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
               ) : (
-                m.text
+                // ASK MESSAGE (markdown rendering)
+                <div className="px-4 py-3">
+                  <ReactMarkdown
+                    remarkPlugins={[remarkGfm, remarkBreaks]}
+                    components={{
+                      p: ({ children }) => (
+                        <p className="mb-3 last:mb-0">{children}</p>
+                      ),
+                      ul: ({ children }) => (
+                        <ul className="list-disc pl-5 mb-3 space-y-1">{children}</ul>
+                      ),
+                      ol: ({ children }) => (
+                        <ol className="list-decimal pl-5 mb-3 space-y-1">
+                          {children}
+                        </ol>
+                      ),
+                      li: ({ children }) => <li>{children}</li>,
+                      strong: ({ children }) => (
+                        <strong className="font-semibold">{children}</strong>
+                      ),
+                    }}
+                  >
+                    {m.text || ""}
+                  </ReactMarkdown>
+                </div>
               )}
             </div>
 

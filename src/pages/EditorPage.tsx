@@ -114,7 +114,7 @@ const EditorPage = () => {
       </div>
 
       <div className="w-1/2 h-full bg-[#f5f7fb]">
-        <ResumePreview resumeJson={previewJson || resumeJson} editMode={false} />
+        <ResumePreview resumeJson={previewJson || resumeJson} editMode={false} templateKey={templateKey} />
       </div>
     </div>
   );

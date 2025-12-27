@@ -12,12 +12,17 @@ export const askAI = async (
 
 export const editAI = async (
   prompt: string,
-  resumeJson: any,
   templateKey: string | null,
-  conversationId: string | null
+  conversationId: string | null,
+  jobDescription?: string
 ) => {
-  const res = await api.post("/ai/edit", { prompt, resumeJson, templateKey, conversationId });
-  return res.data; // { sections: [...], message: string, conversationId, title }
+  const res = await api.post("/ai/edit", { 
+    prompt, 
+    templateKey, 
+    conversationId,
+    jobDescription 
+  });
+  return res.data; // { message: { messageinfo, keys, keywords, edits }, conversationId, title }
 };
 
 export const acceptEdit = async (

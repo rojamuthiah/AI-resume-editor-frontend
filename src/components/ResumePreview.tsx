@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import api from "../api/api";
+import TemplateCard from "./TemplateCard";
 
-const ResumePreview = ({ resumeJson, editMode }) => {
+const ResumePreview = ({ resumeJson, editMode,templateKey }) => {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -22,8 +23,8 @@ const ResumePreview = ({ resumeJson, editMode }) => {
       .post(
         "/resume/render",
         {
-          templateKey: "classic",
-          resumeJson,
+          templateKey,
+
         },
         { responseType: "blob" }
       )
