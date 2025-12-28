@@ -103,6 +103,7 @@ const EditorPage = () => {
 
   const handleSelectConversation = (id: string | null) => {
     setConversationId(id);
+    setPreviewJson(null); // Clear preview when switching conversations
     if (id) {
       setSearchParams({ template: templateKey!, conversation: id });
     } else {
@@ -141,7 +142,13 @@ const EditorPage = () => {
       </div>
 
       <div className="w-1/2 h-full bg-[#f5f7fb]">
-        <ResumePreview resumeJson={previewJson || resumeJson} editMode={false} templateKey={templateKey} />
+        <ResumePreview 
+          resumeJson={resumeJson} 
+          editMode={false} 
+          templateKey={templateKey}
+          previewJson={previewJson}
+          isPreviewMode={!!previewJson}
+        />
       </div>
     </div>
   );

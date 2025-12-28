@@ -52,6 +52,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const [loading, setLoading] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "error" | "success" } | null>(null);
+  const [previewingSection, setPreviewingSection] = useState<string | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
@@ -72,6 +73,22 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  const handlePreview = (sectionKey: string, afterJson: any) => {
+    // Create preview by merging resumeJson with the afterJson for this section
+    const previewData = {
+      ...resumeJson,
+      [sectionKey]: afterJson
+    };
+    
+    setPreviewJson(previewData);
+    setPreviewingSection(sectionKey);
+  };
+
+  const handleDismissPreview = () => {
+    setPreviewJson(null);
+    setPreviewingSection(null);
+  };
+
   const handleAccept = async (
     sectionKey: string, 
     editData: { before: string[]; after: string[]; beforeJson: any; afterJson: any }, 
@@ -80,6 +97,11 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     if (!templateKey) return;
 
     try {
+      // Dismiss preview if this section is being previewed
+      if (previewingSection === sectionKey) {
+        handleDismissPreview();
+      }
+
       // Use afterJson directly - no parsing needed
       const sectionData = editData.afterJson;
       
@@ -182,6 +204,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     ]);
   
     setPreviewJson(null);
+    setPreviewingSection(null);
     setLoading(true);
 
     try {
@@ -222,7 +245,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     (c) => c.id === conversationId
   );
 
-      return (
+  return (
     <div className="flex flex-col h-full bg-white border-r">
       {/* Toast Notification */}
       {toast && (
@@ -233,6 +256,19 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         />
       )}
 
+      {/* Dismiss Preview Button - Fixed Position */}
+      {previewingSection && (
+        <div className="fixed top-4 right-4 z-50">
+          <button
+            onClick={handleDismissPreview}
+            className="px-4 py-2 bg-gray-800 text-white rounded-lg shadow-lg hover:bg-gray-900 transition flex items-center gap-2"
+          >
+            <span>✕</span>
+            <span>Dismiss Preview</span>
+          </button>
+        </div>
+      )}
+
       {/* ================= HEADER ================= */}
       <div className="px-4 py-3 border-b flex items-center justify-between bg-white">
         <div>
@@ -241,7 +277,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         </div>
 
         <div className="relative" ref={dropdownRef}>
-              <button
+          <button
             onClick={() => setDropdownOpen((o) => !o)}
             className="flex items-center gap-2 px-3 py-2 border rounded-lg text-sm bg-gray-50 hover:bg-gray-100 max-w-[260px]"
           >
@@ -251,7 +287,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
             <span className={`transition-transform ${dropdownOpen ? "rotate-180" : ""}`}>
               ▾
             </span>
-              </button>
+          </button>
 
           {dropdownOpen && (
             <div className="absolute right-0 mt-2 w-80 bg-white border rounded-lg shadow-xl z-50">
@@ -267,7 +303,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
               <div className="max-h-72 overflow-y-auto">
                 {conversationList.map((c) => (
-              <button
+                  <button
                     key={c.id}
                     onClick={() => {
                       onSelectConversation(c.id);
@@ -280,7 +316,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                     }`}
                   >
                     {c.title}
-              </button>
+                  </button>
                 ))}
               </div>
             </div>
@@ -348,9 +384,14 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                       if (!edit) return null;
 
                       const isAccepted = m.message.acceptedSections?.includes(key);
+                      const isPreviewing = previewingSection === key;
 
-  return (
-                        <div key={key} className={`border rounded-lg p-4 ${isAccepted ? "bg-green-50 border-green-300" : "bg-gray-50"}`}>
+                      return (
+                        <div key={key} className={`border rounded-lg p-4 ${
+                          isAccepted ? "bg-green-50 border-green-300" : 
+                          isPreviewing ? "bg-blue-50 border-blue-300" : 
+                          "bg-gray-50"
+                        }`}>
                           <div className="flex items-center justify-between mb-3">
                             <p className="text-sm font-semibold text-blue-700 capitalize">
                               {key.replace(/([A-Z])/g, ' $1').trim()}
@@ -358,6 +399,11 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                             {isAccepted && (
                               <span className="px-2 py-1 bg-green-600 text-white text-xs rounded">
                                 ✓ Accepted
+                              </span>
+                            )}
+                            {isPreviewing && (
+                              <span className="px-2 py-1 bg-blue-600 text-white text-xs rounded">
+                                👁 Previewing
                               </span>
                             )}
                           </div>
@@ -370,7 +416,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                                 <li key={idx}>{point}</li>
                               ))}
                             </ul>
-      </div>
+                          </div>
 
                           {/* After */}
                           <div className="mb-3">
@@ -387,10 +433,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                             {!isAccepted ? (
                               <>
                                 <button
-                                  onClick={() => {
-                                    console.log("Preview clicked for", key);
-                                    // Preview handler - to be implemented
-                                  }}
+                                  onClick={() => handlePreview(key, edit.afterJson)}
                                   className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition"
                                 >
                                   Preview
@@ -431,7 +474,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                   >
                     {m.text || ""}
                   </ReactMarkdown>
-              </div>
+                </div>
               )}
             </div>
 
