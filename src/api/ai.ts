@@ -7,7 +7,7 @@ export const askAI = async (
   conversationId: string | null
 ) => {
   const res = await api.post("/ai/ask", { prompt, resumeJson, templateKey, conversationId });
-  return res.data; // { message: string, conversationId, title }
+  return res.data;
 };
 
 export const editAI = async (
@@ -22,14 +22,33 @@ export const editAI = async (
     conversationId,
     jobDescription 
   });
-  return res.data; // { message: { messageinfo, keys, keywords, edits }, conversationId, title }
+  return res.data;
 };
 
 export const acceptEdit = async (
-  resumeJson: any,
-  templateKey: string | null,
-  conversationId: string | null
+  section: string,
+  sectionData: any,
+  beforeData: any,
+  templateKey: string | null
 ) => {
-  const res = await api.post("/ai/accept", { resumeJson, templateKey, conversationId });
-  return res.data; // { success: true, resumeJson }
+  const res = await api.post("/ai/accept", { 
+    section, 
+    sectionData, 
+    beforeData,
+    templateKey 
+  });
+  return res.data; // { success: true/false, resumeJson, message? }
+};
+
+export const revertEdit = async (
+  section: string,
+  beforeData: any,
+  templateKey: string | null
+) => {
+  const res = await api.post("/ai/revert", { 
+    section, 
+    beforeData,
+    templateKey 
+  });
+  return res.data; // { success: true/false, resumeJson, message? }
 };

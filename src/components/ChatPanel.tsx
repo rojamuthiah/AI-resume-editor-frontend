@@ -4,13 +4,14 @@ import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
 import ChatInput from "./chatInput";
 import TypingIndicator from "./typingIndicator";
-import { askAI, editAI } from "../api/ai";
+import { askAI, editAI, acceptEdit, revertEdit } from "../api/ai";
 import type { ConversationMessage } from "../types/conversations";
 
 interface ChatPanelProps {
   conversation: ConversationMessage[];
   setConversation: React.Dispatch<React.SetStateAction<ConversationMessage[]>>;
   resumeJson: any;
+  setResumeJson: React.Dispatch<React.SetStateAction<any>>;
   setPreviewJson: React.Dispatch<React.SetStateAction<any | null>>;
   templateKey: string | null;
   conversationId: string | null;
@@ -19,10 +20,27 @@ interface ChatPanelProps {
   onConversationCreated: (meta: { id: string; title: string }) => void;
 }
 
+// Toast Component
+const Toast = ({ message, type, onClose }: { message: string; type: "error" | "success"; onClose: () => void }) => {
+  useEffect(() => {
+    const timer = setTimeout(onClose, 2000);
+    return () => clearTimeout(timer);
+  }, [onClose]);
+
+  return (
+    <div className={`fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 ${
+      type === "error" ? "bg-red-500 text-white" : "bg-green-500 text-white"
+    }`}>
+      <p className="text-sm font-medium">{message}</p>
+    </div>
+  );
+};
+
 const ChatPanel: React.FC<ChatPanelProps> = ({
   conversation,
   setConversation,
   resumeJson,
+  setResumeJson,
   setPreviewJson,
   templateKey,
   conversationId,
@@ -33,6 +51,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const [mode, setMode] = useState<"ask" | "edit">("ask");
   const [loading, setLoading] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: "error" | "success" } | null>(null);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
@@ -53,6 +72,107 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  const handleAccept = async (
+    sectionKey: string, 
+    editData: { before: string[]; after: string[]; beforeJson: any; afterJson: any }, 
+    messageIndex: number
+  ) => {
+    if (!templateKey) return;
+
+    try {
+      // Use afterJson directly - no parsing needed
+      const sectionData = editData.afterJson;
+      
+      // Use beforeJson for validation (pass to backend)
+      const res = await acceptEdit(sectionKey, sectionData, editData.beforeJson, templateKey);
+      
+      if (!res.success) {
+        setToast({
+          message: res.message || "Failed to accept edit",
+          type: "error"
+        });
+        return;
+      }
+      
+      // Update resumeJson in parent
+      setResumeJson(res.resumeJson);
+      
+      // Mark section as accepted in conversation
+      setConversation((prev) =>
+        prev.map((msg, idx) => 
+          idx === messageIndex && msg.type === "edit" && msg.message
+            ? { 
+                ...msg, 
+                message: { 
+                  ...msg.message, 
+                  acceptedSections: [...(msg.message.acceptedSections || []), sectionKey] 
+                } 
+              }
+            : msg
+        )
+      );
+
+      setToast({
+        message: `Successfully updated ${sectionKey}`,
+        type: "success"
+      });
+    } catch (err: any) {
+      setToast({
+        message: err.response?.data?.message || "Failed to accept edit",
+        type: "error"
+      });
+    }
+  };
+
+  const handleRevert = async (
+    sectionKey: string,
+    editData: { before: string[]; beforeJson: any },
+    messageIndex: number
+  ) => {
+    if (!templateKey) return;
+
+    try {
+      // Use beforeJson directly for revert
+      const res = await revertEdit(sectionKey, editData.beforeJson, templateKey);
+      
+      if (!res.success) {
+        setToast({
+          message: res.message || "Revert is not possible",
+          type: "error"
+        });
+        return;
+      }
+      
+      // Update resumeJson in parent
+      setResumeJson(res.resumeJson);
+      
+      // Remove from accepted sections
+      setConversation((prev) =>
+        prev.map((msg, idx) => 
+          idx === messageIndex && msg.type === "edit" && msg.message
+            ? { 
+                ...msg, 
+                message: { 
+                  ...msg.message, 
+                  acceptedSections: (msg.message.acceptedSections || []).filter((s: string) => s !== sectionKey)
+                } 
+              }
+            : msg
+        )
+      );
+
+      setToast({
+        message: `Reverted ${sectionKey}`,
+        type: "success"
+      });
+    } catch (err: any) {
+      setToast({
+        message: err.response?.data?.message || "Revert is not possible",
+        type: "error"
+      });
+    }
+  };
+
   const sendMessage = async (text: string) => {
     if (!text.trim() || !templateKey) return;
   
@@ -63,7 +183,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   
     setPreviewJson(null);
     setLoading(true);
-  
+
     try {
       let res;
       if (mode === "ask") {
@@ -73,20 +193,18 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           { role: "ai", type: "ask", text: res.message },
         ]);
       } else {
-        // Edit mode - call editAI without resumeJson
         res = await editAI(text, templateKey, conversationId);
         setConversation((prev) => [
           ...prev,
-          { 
-            role: "ai", 
-            type: "edit", 
+          {
+            role: "ai",
+            type: "edit",
             message: res.message,
             text: res.message.messageinfo 
           },
         ]);
       }
   
-      // Handle new conversation creation
       if (!conversationId && res.conversationId) {
         onConversationCreated({
           id: res.conversationId,
@@ -104,8 +222,17 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     (c) => c.id === conversationId
   );
 
-  return (
+      return (
     <div className="flex flex-col h-full bg-white border-r">
+      {/* Toast Notification */}
+      {toast && (
+        <Toast 
+          message={toast.message} 
+          type={toast.type} 
+          onClose={() => setToast(null)} 
+        />
+      )}
+
       {/* ================= HEADER ================= */}
       <div className="px-4 py-3 border-b flex items-center justify-between bg-white">
         <div>
@@ -114,7 +241,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         </div>
 
         <div className="relative" ref={dropdownRef}>
-          <button
+              <button
             onClick={() => setDropdownOpen((o) => !o)}
             className="flex items-center gap-2 px-3 py-2 border rounded-lg text-sm bg-gray-50 hover:bg-gray-100 max-w-[260px]"
           >
@@ -124,7 +251,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
             <span className={`transition-transform ${dropdownOpen ? "rotate-180" : ""}`}>
               ▾
             </span>
-          </button>
+              </button>
 
           {dropdownOpen && (
             <div className="absolute right-0 mt-2 w-80 bg-white border rounded-lg shadow-xl z-50">
@@ -140,7 +267,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
               <div className="max-h-72 overflow-y-auto">
                 {conversationList.map((c) => (
-                  <button
+              <button
                     key={c.id}
                     onClick={() => {
                       onSelectConversation(c.id);
@@ -153,7 +280,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                     }`}
                   >
                     {c.title}
-                  </button>
+              </button>
                 ))}
               </div>
             </div>
@@ -186,7 +313,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
               }`}
             >
               {m.role === "user" ? (
-                // User message
                 <div className="px-4 py-3">{m.text}</div>
               ) : m.type === "edit" && m.message ? (
                 // EDIT MESSAGE DISPLAY
@@ -196,7 +322,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                     <p className="text-sm text-gray-800 font-medium">{m.message.messageinfo}</p>
                   </div>
 
-                  {/* Keywords Box (only if present) */}
+                  {/* Keywords Box */}
                   {m.message.keywords && m.message.keywords.length > 0 && (
                     <div className="bg-green-50 border border-green-200 rounded-lg p-3">
                       <p className="text-xs font-semibold text-green-800 mb-2">ATS Keywords Matched:</p>
@@ -221,11 +347,20 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                       const edit = m.message.edits[key];
                       if (!edit) return null;
 
-                      return (
-                        <div key={key} className="border rounded-lg p-4 bg-gray-50">
-                          <p className="text-sm font-semibold text-blue-700 mb-3 capitalize">
-                            {key.replace(/([A-Z])/g, ' $1').trim()}
-                          </p>
+                      const isAccepted = m.message.acceptedSections?.includes(key);
+
+  return (
+                        <div key={key} className={`border rounded-lg p-4 ${isAccepted ? "bg-green-50 border-green-300" : "bg-gray-50"}`}>
+                          <div className="flex items-center justify-between mb-3">
+                            <p className="text-sm font-semibold text-blue-700 capitalize">
+                              {key.replace(/([A-Z])/g, ' $1').trim()}
+                            </p>
+                            {isAccepted && (
+                              <span className="px-2 py-1 bg-green-600 text-white text-xs rounded">
+                                ✓ Accepted
+                              </span>
+                            )}
+                          </div>
 
                           {/* Before */}
                           <div className="mb-3">
@@ -235,7 +370,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                                 <li key={idx}>{point}</li>
                               ))}
                             </ul>
-                          </div>
+      </div>
 
                           {/* After */}
                           <div className="mb-3">
@@ -249,24 +384,32 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
                           {/* Action Buttons */}
                           <div className="flex gap-2 mt-3">
-                            <button
-                              onClick={() => {
-                                // Preview handler - to be implemented
-                                console.log("Preview clicked for", key);
-                              }}
-                              className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition"
-                            >
-                              Preview
-                            </button>
-                            <button
-                              onClick={() => {
-                                // Accept handler - to be implemented
-                                console.log("Accept clicked for", key);
-                              }}
-                              className="px-3 py-1.5 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition"
-                            >
-                              Accept
-                            </button>
+                            {!isAccepted ? (
+                              <>
+                                <button
+                                  onClick={() => {
+                                    console.log("Preview clicked for", key);
+                                    // Preview handler - to be implemented
+                                  }}
+                                  className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition"
+                                >
+                                  Preview
+                                </button>
+                                <button
+                                  onClick={() => handleAccept(key, edit, i)}
+                                  className="px-3 py-1.5 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition"
+                                >
+                                  Accept
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                onClick={() => handleRevert(key, edit, i)}
+                                className="px-3 py-1.5 bg-orange-600 text-white text-xs rounded hover:bg-orange-700 transition"
+                              >
+                                Revert
+                              </button>
+                            )}
                           </div>
                         </div>
                       );
@@ -274,58 +417,36 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                   </div>
                 </div>
               ) : (
-                // ASK MESSAGE (markdown rendering)
+                // ASK MESSAGE
                 <div className="px-4 py-3">
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm, remarkBreaks]}
                     components={{
-                      p: ({ children }) => (
-                        <p className="mb-3 last:mb-0">{children}</p>
-                      ),
-                      ul: ({ children }) => (
-                        <ul className="list-disc pl-5 mb-3 space-y-1">{children}</ul>
-                      ),
-                      ol: ({ children }) => (
-                        <ol className="list-decimal pl-5 mb-3 space-y-1">
-                          {children}
-                        </ol>
-                      ),
+                      p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
+                      ul: ({ children }) => <ul className="list-disc pl-5 mb-3 space-y-1">{children}</ul>,
+                      ol: ({ children }) => <ol className="list-decimal pl-5 mb-3 space-y-1">{children}</ol>,
                       li: ({ children }) => <li>{children}</li>,
-                      strong: ({ children }) => (
-                        <strong className="font-semibold">{children}</strong>
-                      ),
+                      strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
                     }}
                   >
                     {m.text || ""}
                   </ReactMarkdown>
-                </div>
+              </div>
               )}
             </div>
 
             {/* User Avatar */}
             {m.role === "user" && (
               <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center shadow">
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </div>
             )}
           </div>
         ))}
 
-        {/* Typing indicator */}
         {loading && <TypingIndicator />}
-
         <div ref={messagesEndRef} />
       </div>
 

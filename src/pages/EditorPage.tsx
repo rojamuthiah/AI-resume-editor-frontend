@@ -27,11 +27,38 @@ const EditorPage = () => {
   const [loading, setLoading] = useState(true);
 
   const normalizeConversation = (messages: any[] = []): ConversationMessage[] =>
-    messages.map((m) =>
-      m.role === "user"
-        ? { role: "user", type: m.type, text: m.content }
-        : { role: "ai", type: m.type, text: m.content }
-    );
+    messages.map((m) => {
+      if (m.role === "user") {
+        return { role: "user", type: m.type || "ask", text: m.content };
+      }
+  
+      // AI message
+      if (m.type === "ask") {
+        return { role: "ai", type: "ask", text: m.content };
+      }
+  
+      // Edit message - parse stringified JSON
+      if (m.type === "edit") {
+        try {
+          const parsed = typeof m.content === "string" ? JSON.parse(m.content) : m.content;
+          return {
+            role: "ai",
+            type: "edit",
+            message: parsed,
+            text: parsed.messageinfo
+          };
+        } catch (err) {
+          console.error("Failed to parse edit message:", err);
+          return {
+            role: "ai",
+            type: "edit",
+            text: m.content || "Edit message"
+          };
+        }
+      }
+  
+      return { role: "ai", type: "ask", text: m.content };
+    });
 
   /** Load resume */
   useEffect(() => {
