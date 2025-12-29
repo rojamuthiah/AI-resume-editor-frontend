@@ -20,29 +20,26 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
 }) => {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [previousPreviewJson, setPreviousPreviewJson] = useState<any>(null);
 
   const isPreviewModeActive = !!previewJson || isPreviewMode;
 
-  // Render PDF whenever resumeJson or previewJson changes AND editMode is off
+  /* ================= PDF RENDER ================= */
   useEffect(() => {
     if (!templateKey || !category) return;
+    if (editMode) return;
 
-    if (editMode) {
-      console.log("Edit mode ON → skip PDF rendering");
-      return;
+    // Check if preview data actually changed
+    const previewChanged = JSON.stringify(previousPreviewJson) !== JSON.stringify(previewJson);
+    
+    if (!previewChanged && pdfUrl) {
+      return; // Don't re-render if nothing changed
     }
-
-    console.log(isPreviewModeActive ? "Rendering PREVIEW PDF" : "Rendering PDF from DB");
 
     setLoading(true);
 
-    // Prepare request body
-    const requestBody: any = { 
-      templateKey,
-      category 
-    };
+    const requestBody: any = { templateKey, category };
 
-    // If in preview mode, send the preview data
     if (isPreviewModeActive) {
       requestBody.previewMode = true;
       requestBody.previewData = previewJson;
@@ -51,40 +48,30 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
     api
       .post("/resume/render", requestBody, { responseType: "blob" })
       .then((res) => {
-        console.log("PDF received:", res);
-
         const fileBlob = new Blob([res.data], { type: "application/pdf" });
         const fileURL = URL.createObjectURL(fileBlob);
-        
-        // Clean up old URL if exists
-        if (pdfUrl) {
-          URL.revokeObjectURL(pdfUrl);
-        }
-        
+
+        if (pdfUrl) URL.revokeObjectURL(pdfUrl);
         setPdfUrl(fileURL);
+        setPreviousPreviewJson(previewJson);
       })
-      .catch((err) => {
-        console.error("PDF render error:", err);
-      })
+      .catch((err) => console.error("PDF render error:", err))
       .finally(() => setLoading(false));
 
-    // Cleanup function
     return () => {
-      if (pdfUrl) {
-        URL.revokeObjectURL(pdfUrl);
-      }
+      // Cleanup on unmount
     };
   }, [resumeJson, previewJson, editMode, templateKey, category]);
 
+  /* ================= EDIT MODE ================= */
   if (editMode) {
     return (
-      <div className="p-6 space-y-4">
+      <div className="p-6 space-y-4 overflow-y-auto h-full">
         <h3 className="text-lg font-semibold mb-4">Edit Resume Fields</h3>
 
         {Object.entries(resumeJson).map(([key, value]) => (
           <div key={key} className="flex flex-col">
             <label className="font-medium">{key}</label>
-
             <input
               className="border rounded px-3 py-2 mt-1"
               value={typeof value === "string" ? value : JSON.stringify(value)}
@@ -96,14 +83,19 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
     );
   }
 
+  /* ================= LOADING ================= */
   if (loading) {
     return (
       <div className="w-full h-full flex items-center justify-center text-gray-500">
-        {isPreviewModeActive ? "Compiling Preview PDF…" : "Compiling PDF…"}
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+          {isPreviewModeActive ? "Compiling Preview PDF…" : "Compiling PDF…"}
+        </div>
       </div>
     );
   }
 
+  /* ================= EMPTY ================= */
   if (!pdfUrl) {
     return (
       <div className="w-full h-full flex items-center justify-center text-gray-400">
@@ -112,30 +104,51 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
     );
   }
 
+  /* ================= PREVIEW ================= */
   return (
-    <div className="relative w-full h-full">
-      {/* Preview Mode Indicator */}
+    <div className="w-full h-full flex flex-col overflow-hidden bg-gray-100">
+      {/* Preview Mode Banner */}
       {isPreviewModeActive && (
-        <div className="absolute top-0 left-0 right-0 z-10 bg-blue-600 text-white px-4 py-3 shadow-lg">
-          <div className="flex items-center justify-center gap-2">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+        <div className="flex-shrink-0 bg-blue-600 text-white px-4 py-2 shadow-lg">
+          <div className="flex items-center justify-center gap-2 text-xs sm:text-sm font-semibold">
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+              />
             </svg>
-            <span className="font-semibold">Preview Mode - Viewing proposed changes</span>
+            <span>Preview Mode</span>
           </div>
         </div>
       )}
 
-      <iframe
-        src={pdfUrl}
-        className={`w-full h-full border-none ${isPreviewModeActive ? 'mt-12' : ''}`}
-        title="Resume PDF Preview"
-        style={{ 
-          border: isPreviewModeActive ? '3px solid #2563eb' : 'none',
-          boxShadow: isPreviewModeActive ? '0 0 20px rgba(37, 99, 235, 0.3)' : 'none'
-        }}
-      />
+      {/* PDF IFRAME - Properly constrained */}
+      <div className="flex-1 overflow-hidden w-screen max-w-full">
+        <iframe
+  src={`${pdfUrl}#view=FitH`}
+  title="Resume PDF Preview"
+  className="w-full h-full border-0"
+  style={{
+    border: isPreviewModeActive ? "3px solid #2563eb" : "none",
+    boxShadow: isPreviewModeActive
+      ? "0 0 20px rgba(37, 99, 235, 0.3)"
+      : "none",
+  }}
+/>
+
+      </div>
     </div>
   );
 };

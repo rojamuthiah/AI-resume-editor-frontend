@@ -11,7 +11,7 @@ const Navbar = () => {
         <div className="flex items-center justify-between">
 
           {/* LEFT — LOGO */}
-          <Link to="/" className="flex items-center flex-shrink-0">
+          <Link to="/templates/categories" className="flex items-center flex-shrink-0">
 
             {/* MOBILE + TABLET */}
             <div className="flex items-center lg:hidden">

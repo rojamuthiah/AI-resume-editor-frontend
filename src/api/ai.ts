@@ -1,16 +1,14 @@
 import api from "./api";
 
-// Ask AI
+// Ask AI - Removed resumeJson parameter
 export const askAI = async (
   prompt: string,
-  resumeJson: any,
   templateKey: string,
   category: string,
   conversationId: string | null
 ) => {
   const response = await api.post("/ai/ask", {
     prompt,
-    resumeJson,
     templateKey,
     category,
     conversationId
@@ -34,7 +32,7 @@ export const editAI = async (
   return response.data;
 };
 
-// Accept Edit - Changed endpoint from /resume to /ai
+// Accept Edit
 export const acceptEdit = async (
   section: string,
   sectionData: any,
@@ -52,7 +50,7 @@ export const acceptEdit = async (
   return response.data;
 };
 
-// Revert Edit - Changed endpoint from /resume to /ai
+// Revert Edit
 export const revertEdit = async (
   section: string,
   beforeData: any,

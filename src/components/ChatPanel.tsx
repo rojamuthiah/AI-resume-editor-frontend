@@ -175,7 +175,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     try {
       let res;
       if (mode === "ask") {
-        res = await askAI(text, resumeJson, templateKey, category, conversationId);
+        // ✅ REMOVED resumeJson parameter
+        res = await askAI(text, templateKey, category, conversationId);
         setConversation((prev) => [
           ...prev,
           { role: "ai", type: "ask", text: res.message },
@@ -201,6 +202,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       }
     } catch (err) {
       console.error("Send message error:", err);
+      setToast({
+        message: "Failed to send message",
+        type: "error"
+      });
     } finally {
       setLoading(false);
     }
