@@ -47,7 +47,7 @@ export default function Signup() {
       </div>
 
       {/* RIGHT SIDE */}
-      <div className="bg-gray-50 min-h-screen px-4">
+      <div className="bg-black min-h-screen px-4">
 
         {/* MOBILE HEADER */}
         <div className="lg:hidden w-full bg-black px-4 pt-6 pb-8">
@@ -64,7 +64,7 @@ export default function Signup() {
 
         {/* CARD WRAPPER */}
         <div className="flex justify-center mt-10 lg:mt-0 lg:min-h-screen lg:items-center">
-          <div className="w-full max-w-md bg-white shadow-lg rounded-2xl p-8">
+          <div className="w-full max-w-md bg-white shadow-lg rounded-xl p-8">
             <h2 className="text-3xl font-bold text-center mb-6">
               Create Account
             </h2>

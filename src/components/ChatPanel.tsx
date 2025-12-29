@@ -5,9 +5,9 @@ import remarkBreaks from "remark-breaks";
 import ChatInput from "./chatInput";
 import TypingIndicator from "./TypingIndicator";
 import Toast from "./Toast";
+import ConversationDropdown from "./ConversationDropdown";
 import { askAI, editAI, acceptEdit, revertEdit } from "../api/ai";
-import type {ChatPanelProps} from "../types/conversations";
-
+import type { ChatPanelProps } from "../types/conversations";
 
 const ChatPanel: React.FC<ChatPanelProps> = ({
   conversation,
@@ -27,25 +27,14 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "error" | "success" } | null>(null);
   const [previewingSection, setPreviewingSection] = useState<string | null>(null);
+  const [showChatHistory, setShowChatHistory] = useState(true);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
-  const dropdownRef = useRef<HTMLDivElement | null>(null);
 
   /* Auto scroll */
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [conversation, loading]);
-
-  /* Close dropdown on outside click */
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
 
   const handlePreview = (sectionKey: string, afterJson: any) => {
     const previewData = {
@@ -246,54 +235,18 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       )}
 
       {/* ================= HEADER WITH DROPDOWN ================= */}
-      <div className="px-4 py-3 border-b bg-white">
-        <div className="relative" ref={dropdownRef}>
-          <button
-            onClick={() => setDropdownOpen((o) => !o)}
-            className="w-full flex items-center justify-between px-4 py-3 border rounded-lg text-sm bg-gray-50 hover:bg-gray-100"
-          >
-            <span className="truncate font-medium text-gray-800">
-              {currentConversation?.title || "New conversation"}
-            </span>
-            <span className={`transition-transform ${dropdownOpen ? "rotate-180" : ""}`}>
-              ▾
-            </span>
-          </button>
-
-          {dropdownOpen && (
-            <div className="absolute left-0 right-0 mt-2 bg-white border rounded-lg shadow-xl z-50">
-              <button
-                onClick={() => {
-                  onSelectConversation(null);
-                  setDropdownOpen(false);
-                }}
-                className="w-full px-4 py-3 text-left text-blue-600 font-medium hover:bg-blue-50 border-b"
-              >
-                + New Conversation
-              </button>
-
-              <div className="max-h-32 overflow-y-auto">
-                {conversationList.slice(0, 2).map((c) => (
-                  <button
-                    key={c.id}
-                    onClick={() => {
-                      onSelectConversation(c.id);
-                      setDropdownOpen(false);
-                    }}
-                    className={`w-full px-4 py-3 text-left text-sm truncate ${
-                      c.id === conversationId
-                        ? "bg-blue-50 text-blue-700 font-medium"
-                        : "hover:bg-gray-50"
-                    }`}
-                  >
-                    {c.title}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+      {showChatHistory && (
+        <div className="px-4 py-3 border-b bg-white">
+          <ConversationDropdown
+            isOpen={dropdownOpen}
+            onClose={() => setDropdownOpen(false)}
+            currentConversationId={conversationId}
+            conversationList={conversationList}
+            onSelectConversation={onSelectConversation}
+            currentConversationTitle={currentConversation?.title || null}
+          />
         </div>
-      </div>
+      )}
 
       {/* ================= CHAT ================= */}
       <div className="flex-1 overflow-y-auto px-4 py-6 space-y-6 bg-gray-50">
@@ -470,6 +423,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         setMode={setMode}
         loading={loading}
         onSend={sendMessage}
+        showChatHistory={showChatHistory}
+        setShowChatHistory={setShowChatHistory}
       />
     </div>
   );
