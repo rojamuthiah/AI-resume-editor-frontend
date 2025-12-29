@@ -1,18 +1,20 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import ChatPanel from "../components/ChatPanel";
 import ResumePreview from "../components/ResumePreview";
+import Navbar from "../components/Navbar";
 import api from "../api/api";
 import {
   getConversationTitles,
   getLatestConversation,
   getConversationById,
 } from "../api/conversations";
-import type { ConversationMessage } from "../types/conversation";
+import type { ConversationMessage } from "../types/conversations";
 
 const EditorPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const templateKey = searchParams.get("template");
+  const category = searchParams.get("category");
   const urlConversationId = searchParams.get("conversation");
 
   const [resumeJson, setResumeJson] = useState<any>(null);
@@ -62,13 +64,13 @@ const EditorPage = () => {
 
   /** Load resume */
   useEffect(() => {
-    if (!templateKey) return;
+    if (!templateKey || !category) return;
 
-    api.get(`/resume/${templateKey}`).then((res) => {
+    api.get(`/resume/${templateKey}?category=${category}`).then((res) => {
       setResumeJson(res.data.resumeJson);
       setLoading(false);
     });
-  }, [templateKey]);
+  }, [templateKey, category]);
 
   /** Load titles + auto-open latest */
   useEffect(() => {
@@ -86,6 +88,7 @@ const EditorPage = () => {
 
         setSearchParams({
           template: templateKey,
+          category: category || "",
           conversation: latest.conversationId,
         });
       }
@@ -103,12 +106,12 @@ const EditorPage = () => {
 
   const handleSelectConversation = (id: string | null) => {
     setConversationId(id);
-    setPreviewJson(null); // Clear preview when switching conversations
+    setPreviewJson(null);
     if (id) {
-      setSearchParams({ template: templateKey!, conversation: id });
+      setSearchParams({ template: templateKey!, category: category || "", conversation: id });
     } else {
       setConversation([]);
-      setSearchParams({ template: templateKey! });
+      setSearchParams({ template: templateKey!, category: category || "" });
     }
   };
 
@@ -117,7 +120,7 @@ const EditorPage = () => {
     setConversationList((p) =>
       p.some((c) => c.id === meta.id) ? p : [meta, ...p]
     );
-    setSearchParams({ template: templateKey!, conversation: meta.id });
+    setSearchParams({ template: templateKey!, category: category || "", conversation: meta.id });
   };
 
   if (loading || !resumeJson) {
@@ -126,26 +129,33 @@ const EditorPage = () => {
 
   return (
     <div className="w-full h-screen flex bg-[#eef3fb] overflow-hidden">
-      <div className="w-1/2 h-full bg-white">
-        <ChatPanel
-          conversation={conversation}
-          setConversation={setConversation}
-          resumeJson={resumeJson}
-          setResumeJson={setResumeJson}
-          setPreviewJson={setPreviewJson}
-          templateKey={templateKey}
-          conversationId={conversationId}
-          conversationList={conversationList ?? []}
-          onSelectConversation={handleSelectConversation}
-          onConversationCreated={handleConversationCreated}
-        />
+      {/* Left side - Chat Panel with Navbar */}
+      <div className="w-1/2 h-full flex flex-col bg-white">
+        <Navbar />
+        <div className="flex-1 overflow-hidden">
+          <ChatPanel
+            conversation={conversation}
+            setConversation={setConversation}
+            resumeJson={resumeJson}
+            setResumeJson={setResumeJson}
+            setPreviewJson={setPreviewJson}
+            templateKey={templateKey}
+            category={category}
+            conversationId={conversationId}
+            conversationList={conversationList ?? []}
+            onSelectConversation={handleSelectConversation}
+            onConversationCreated={handleConversationCreated}
+          />
+        </div>
       </div>
 
+      {/* Right side - Full Resume Preview */}
       <div className="w-1/2 h-full bg-[#f5f7fb]">
         <ResumePreview 
           resumeJson={resumeJson} 
           editMode={false} 
           templateKey={templateKey}
+          category={category}
           previewJson={previewJson}
           isPreviewMode={!!previewJson}
         />

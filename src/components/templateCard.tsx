@@ -8,39 +8,39 @@ interface Props {
     previewUrl: string;
     description: string;
   };
+  category: string;
 }
 
-const TemplateCard: React.FC<Props> = ({ template }) => {
+const TemplateCard: React.FC<Props> = ({ template, category }) => {
   const navigate = useNavigate();
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-10 flex gap-12 h-[90vh]">
-
-      {/* LEFT SIDE — Resume preview */}
-      <div className="w-[55%] h-full overflow-y-auto rounded-xl border bg-gray-50 shadow-sm">
+    <div className="bg-white rounded-xl shadow hover:shadow-lg transition overflow-hidden flex flex-col">
+      
+      {/* Preview */}
+      <div className="bg-gray-100 border-b">
         <img
           src={`http://localhost:5000${template.previewUrl}`}
           alt={template.name}
-          className="w-full"
+          className="w-full h-[280px] object-contain p-4"
         />
       </div>
 
-      {/* RIGHT SIDE — Title + description + button */}
-      <div className="w-[45%] flex flex-col justify-center pr-10">
-        <h2 className="text-3xl font-semibold mb-4">{template.name}</h2>
+      {/* Content */}
+      <div className="p-6 flex flex-col flex-1">
+        <h2 className="text-xl font-semibold mb-2">{template.name}</h2>
 
-        <p className="text-gray-600 text-lg leading-relaxed mb-10">
+        <p className="text-gray-600 text-sm flex-1">
           {template.description}
         </p>
 
         <button
-          onClick={() => navigate(`/editor?template=${template.key}`)}
-          className="bg-blue-600 text-white px-8 py-3 rounded-xl text-lg font-medium hover:bg-blue-700 transition shadow"
+          onClick={() => navigate(`/editor?template=${template.key}&category=${category}`)}
+          className="mt-6 bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition"
         >
           Select Template
         </button>
       </div>
-
     </div>
   );
 };

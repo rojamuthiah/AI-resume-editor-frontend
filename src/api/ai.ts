@@ -1,54 +1,69 @@
 import api from "./api";
 
+// Ask AI
 export const askAI = async (
   prompt: string,
   resumeJson: any,
-  templateKey: string | null,
+  templateKey: string,
+  category: string,
   conversationId: string | null
 ) => {
-  const res = await api.post("/ai/ask", { prompt, resumeJson, templateKey, conversationId });
-  return res.data;
+  const response = await api.post("/ai/ask", {
+    prompt,
+    resumeJson,
+    templateKey,
+    category,
+    conversationId
+  });
+  return response.data;
 };
 
+// Edit AI
 export const editAI = async (
   prompt: string,
-  templateKey: string | null,
-  conversationId: string | null,
-  jobDescription?: string
+  templateKey: string,
+  category: string,
+  conversationId: string | null
 ) => {
-  const res = await api.post("/ai/edit", { 
-    prompt, 
-    templateKey, 
-    conversationId,
-    jobDescription 
+  const response = await api.post("/ai/edit", {
+    prompt,
+    templateKey,
+    category,
+    conversationId
   });
-  return res.data;
+  return response.data;
 };
 
+// Accept Edit - Changed endpoint from /resume to /ai
 export const acceptEdit = async (
   section: string,
   sectionData: any,
   beforeData: any,
-  templateKey: string | null
+  templateKey: string,
+  category: string
 ) => {
-  const res = await api.post("/ai/accept", { 
-    section, 
-    sectionData, 
+  const response = await api.post("/ai/accept", {
+    section,
+    sectionData,
     beforeData,
-    templateKey 
+    templateKey,
+    category
   });
-  return res.data; // { success: true/false, resumeJson, message? }
+  return response.data;
 };
 
+// Revert Edit - Changed endpoint from /resume to /ai
 export const revertEdit = async (
   section: string,
   beforeData: any,
-  templateKey: string | null
+  templateKey: string,
+  category: string
 ) => {
-  const res = await api.post("/ai/revert", { 
-    section, 
+  const response = await api.post("/ai/revert", {
+    section,
     beforeData,
-    templateKey 
+    templateKey,
+    category
   });
-  return res.data; // { success: true/false, resumeJson, message? }
+  return response.data;
 };

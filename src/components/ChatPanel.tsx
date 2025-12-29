@@ -3,38 +3,11 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import remarkBreaks from "remark-breaks";
 import ChatInput from "./chatInput";
-import TypingIndicator from "./typingIndicator";
+import TypingIndicator from "./TypingIndicator";
+import Toast from "./Toast";
 import { askAI, editAI, acceptEdit, revertEdit } from "../api/ai";
-import type { ConversationMessage } from "../types/conversations";
+import type {ChatPanelProps} from "../types/conversations";
 
-interface ChatPanelProps {
-  conversation: ConversationMessage[];
-  setConversation: React.Dispatch<React.SetStateAction<ConversationMessage[]>>;
-  resumeJson: any;
-  setResumeJson: React.Dispatch<React.SetStateAction<any>>;
-  setPreviewJson: React.Dispatch<React.SetStateAction<any | null>>;
-  templateKey: string | null;
-  conversationId: string | null;
-  conversationList: { id: string; title: string }[];
-  onSelectConversation: (id: string | null) => void;
-  onConversationCreated: (meta: { id: string; title: string }) => void;
-}
-
-// Toast Component
-const Toast = ({ message, type, onClose }: { message: string; type: "error" | "success"; onClose: () => void }) => {
-  useEffect(() => {
-    const timer = setTimeout(onClose, 2000);
-    return () => clearTimeout(timer);
-  }, [onClose]);
-
-  return (
-    <div className={`fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 ${
-      type === "error" ? "bg-red-500 text-white" : "bg-green-500 text-white"
-    }`}>
-      <p className="text-sm font-medium">{message}</p>
-    </div>
-  );
-};
 
 const ChatPanel: React.FC<ChatPanelProps> = ({
   conversation,
@@ -43,6 +16,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   setResumeJson,
   setPreviewJson,
   templateKey,
+  category,
   conversationId,
   conversationList,
   onSelectConversation,
@@ -74,7 +48,6 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   }, []);
 
   const handlePreview = (sectionKey: string, afterJson: any) => {
-    // Create preview by merging resumeJson with the afterJson for this section
     const previewData = {
       ...resumeJson,
       [sectionKey]: afterJson
@@ -94,19 +67,22 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     editData: { before: string[]; after: string[]; beforeJson: any; afterJson: any }, 
     messageIndex: number
   ) => {
-    if (!templateKey) return;
+    if (!templateKey || !category) return;
 
     try {
-      // Dismiss preview if this section is being previewed
       if (previewingSection === sectionKey) {
         handleDismissPreview();
       }
 
-      // Use afterJson directly - no parsing needed
       const sectionData = editData.afterJson;
       
-      // Use beforeJson for validation (pass to backend)
-      const res = await acceptEdit(sectionKey, sectionData, editData.beforeJson, templateKey);
+      const res = await acceptEdit(
+        sectionKey, 
+        sectionData, 
+        editData.beforeJson, 
+        templateKey,
+        category
+      );
       
       if (!res.success) {
         setToast({
@@ -116,10 +92,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         return;
       }
       
-      // Update resumeJson in parent
       setResumeJson(res.resumeJson);
       
-      // Mark section as accepted in conversation
       setConversation((prev) =>
         prev.map((msg, idx) => 
           idx === messageIndex && msg.type === "edit" && msg.message
@@ -151,11 +125,15 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     editData: { before: string[]; beforeJson: any },
     messageIndex: number
   ) => {
-    if (!templateKey) return;
+    if (!templateKey || !category) return;
 
     try {
-      // Use beforeJson directly for revert
-      const res = await revertEdit(sectionKey, editData.beforeJson, templateKey);
+      const res = await revertEdit(
+        sectionKey, 
+        editData.beforeJson, 
+        templateKey,
+        category
+      );
       
       if (!res.success) {
         setToast({
@@ -165,10 +143,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         return;
       }
       
-      // Update resumeJson in parent
       setResumeJson(res.resumeJson);
       
-      // Remove from accepted sections
       setConversation((prev) =>
         prev.map((msg, idx) => 
           idx === messageIndex && msg.type === "edit" && msg.message
@@ -196,7 +172,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   };
 
   const sendMessage = async (text: string) => {
-    if (!text.trim() || !templateKey) return;
+    if (!text.trim() || !templateKey || !category) return;
   
     setConversation((prev) => [
       ...prev,
@@ -210,13 +186,13 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     try {
       let res;
       if (mode === "ask") {
-        res = await askAI(text, resumeJson, templateKey, conversationId);
+        res = await askAI(text, resumeJson, templateKey, category, conversationId);
         setConversation((prev) => [
           ...prev,
           { role: "ai", type: "ask", text: res.message },
         ]);
       } else {
-        res = await editAI(text, templateKey, conversationId);
+        res = await editAI(text, templateKey, category, conversationId);
         setConversation((prev) => [
           ...prev,
           {
@@ -269,19 +245,14 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         </div>
       )}
 
-      {/* ================= HEADER ================= */}
-      <div className="px-4 py-3 border-b flex items-center justify-between bg-white">
-        <div>
-          <h2 className="font-semibold text-gray-800">AI Resume Assistant</h2>
-          <p className="text-xs text-gray-500">Ask or edit your resume</p>
-        </div>
-
+      {/* ================= HEADER WITH DROPDOWN ================= */}
+      <div className="px-4 py-3 border-b bg-white">
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setDropdownOpen((o) => !o)}
-            className="flex items-center gap-2 px-3 py-2 border rounded-lg text-sm bg-gray-50 hover:bg-gray-100 max-w-[260px]"
+            className="w-full flex items-center justify-between px-4 py-3 border rounded-lg text-sm bg-gray-50 hover:bg-gray-100"
           >
-            <span className="truncate">
+            <span className="truncate font-medium text-gray-800">
               {currentConversation?.title || "New conversation"}
             </span>
             <span className={`transition-transform ${dropdownOpen ? "rotate-180" : ""}`}>
@@ -290,7 +261,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
           </button>
 
           {dropdownOpen && (
-            <div className="absolute right-0 mt-2 w-80 bg-white border rounded-lg shadow-xl z-50">
+            <div className="absolute left-0 right-0 mt-2 bg-white border rounded-lg shadow-xl z-50">
               <button
                 onClick={() => {
                   onSelectConversation(null);
@@ -301,8 +272,8 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                 + New Conversation
               </button>
 
-              <div className="max-h-72 overflow-y-auto">
-                {conversationList.map((c) => (
+              <div className="max-h-32 overflow-y-auto">
+                {conversationList.slice(0, 2).map((c) => (
                   <button
                     key={c.id}
                     onClick={() => {

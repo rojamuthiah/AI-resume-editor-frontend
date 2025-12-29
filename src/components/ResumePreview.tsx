@@ -5,38 +5,45 @@ interface ResumePreviewProps {
   resumeJson: any;
   editMode: boolean;
   templateKey: string | null;
+  category: string | null;
   previewJson?: any | null;
+  isPreviewMode?: boolean;
 }
 
 const ResumePreview: React.FC<ResumePreviewProps> = ({ 
   resumeJson, 
   editMode, 
   templateKey,
-  previewJson
+  category,
+  previewJson,
+  isPreviewMode
 }) => {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const isPreviewMode = !!previewJson;
+  const isPreviewModeActive = !!previewJson || isPreviewMode;
 
   // Render PDF whenever resumeJson or previewJson changes AND editMode is off
   useEffect(() => {
-    if (!templateKey) return;
+    if (!templateKey || !category) return;
 
     if (editMode) {
       console.log("Edit mode ON → skip PDF rendering");
       return;
     }
 
-    console.log(isPreviewMode ? "Rendering PREVIEW PDF" : "Rendering PDF from DB");
+    console.log(isPreviewModeActive ? "Rendering PREVIEW PDF" : "Rendering PDF from DB");
 
     setLoading(true);
 
     // Prepare request body
-    const requestBody: any = { templateKey };
+    const requestBody: any = { 
+      templateKey,
+      category 
+    };
 
     // If in preview mode, send the preview data
-    if (isPreviewMode) {
+    if (isPreviewModeActive) {
       requestBody.previewMode = true;
       requestBody.previewData = previewJson;
     }
@@ -67,7 +74,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
         URL.revokeObjectURL(pdfUrl);
       }
     };
-  }, [resumeJson, previewJson, editMode, templateKey]);
+  }, [resumeJson, previewJson, editMode, templateKey, category]);
 
   if (editMode) {
     return (
@@ -92,7 +99,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
   if (loading) {
     return (
       <div className="w-full h-full flex items-center justify-center text-gray-500">
-        {isPreviewMode ? "Compiling Preview PDF…" : "Compiling PDF…"}
+        {isPreviewModeActive ? "Compiling Preview PDF…" : "Compiling PDF…"}
       </div>
     );
   }
@@ -108,7 +115,7 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
   return (
     <div className="relative w-full h-full">
       {/* Preview Mode Indicator */}
-      {isPreviewMode && (
+      {isPreviewModeActive && (
         <div className="absolute top-0 left-0 right-0 z-10 bg-blue-600 text-white px-4 py-3 shadow-lg">
           <div className="flex items-center justify-center gap-2">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -122,11 +129,11 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
 
       <iframe
         src={pdfUrl}
-        className={`w-full h-full border-none ${isPreviewMode ? 'mt-12' : ''}`}
+        className={`w-full h-full border-none ${isPreviewModeActive ? 'mt-12' : ''}`}
         title="Resume PDF Preview"
         style={{ 
-          border: isPreviewMode ? '3px solid #2563eb' : 'none',
-          boxShadow: isPreviewMode ? '0 0 20px rgba(37, 99, 235, 0.3)' : 'none'
+          border: isPreviewModeActive ? '3px solid #2563eb' : 'none',
+          boxShadow: isPreviewModeActive ? '0 0 20px rgba(37, 99, 235, 0.3)' : 'none'
         }}
       />
     </div>

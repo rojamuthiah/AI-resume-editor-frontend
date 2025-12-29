@@ -1,25 +1,54 @@
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
+
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
-import TemplatesPage from "./pages/TemplatePage";
-import EditorPage from "./pages/EditorPage"; 
+import CategoryPage from "./pages/CategoryPage";
+import TemplatePage from "./pages/TemplatePage";
+import EditorPage from "./pages/EditorPage";
+import HomePage from "./pages/HomePage";
+import Navbar from "./components/Navbar";
 
-function App() {
+/* Layout wrapper to conditionally show Navbar */
+function AppLayout() {
+  const location = useLocation();
+
+  const hideNavbar =
+    location.pathname === "/login" ||
+    location.pathname === "/signup" ||
+    location.pathname === "/editor";
+
   return (
-    <BrowserRouter>
+    <>
+      {!hideNavbar && <Navbar />}
+
       <Routes>
         {/* Redirect root → login */}
         <Route path="/" element={<Navigate to="/login" />} />
 
+        {/* Auth pages */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
 
-        {/* After login user lands here */}
-        <Route path="/templates" element={<TemplatesPage />} />
-
-        {/* Resume editor (supports query params like ?template=classic) */}
+        {/* App pages */}
+        <Route path="/home" element={<HomePage />} />
+        <Route path="/templates/categories" element={<CategoryPage />} />
+        <Route path="/templates" element={<TemplatePage />} />
         <Route path="/editor" element={<EditorPage />} />
       </Routes>
+    </>
+  );
+}
+
+function App() {
+  return (
+    <BrowserRouter>
+      <AppLayout />
     </BrowserRouter>
   );
 }
