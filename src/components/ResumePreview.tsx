@@ -9,12 +9,12 @@ interface ResumePreviewProps {
   isPreviewMode?: boolean;
 }
 
-const ResumePreview: React.FC<ResumePreviewProps> = ({ 
-  resumeJson, 
-  editMode, 
+const ResumePreview: React.FC<ResumePreviewProps> = ({
+  resumeJson,
+  editMode,
   resumeId,
   previewJson,
-  isPreviewMode
+  isPreviewMode,
 }) => {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -33,14 +33,11 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
     const previewChanged =
       JSON.stringify(previousPreviewJson) !== JSON.stringify(previewJson);
 
-    // Re-render if either resumeJson or previewJson changed
     if (!resumeChanged && !previewChanged && pdfUrl) return;
 
     setLoading(true);
 
-    const requestBody: any = {
-      resumeId
-    };
+    const requestBody: any = { resumeId };
 
     if (isPreviewModeActive) {
       requestBody.previewMode = true;
@@ -50,7 +47,9 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
     api
       .post("/resume/render", requestBody, { responseType: "blob" })
       .then((res) => {
-        const fileBlob = new Blob([res.data], { type: "application/pdf" });
+        const fileBlob = new Blob([res.data], {
+          type: "application/pdf",
+        });
         const fileURL = URL.createObjectURL(fileBlob);
 
         if (pdfUrl) URL.revokeObjectURL(pdfUrl);
@@ -66,14 +65,20 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
   if (editMode) {
     return (
       <div className="p-6 space-y-4 overflow-y-auto h-full">
-        <h3 className="text-lg font-semibold mb-4">Edit Resume Fields</h3>
+        <h3 className="text-lg font-semibold mb-4">
+          Edit Resume Fields
+        </h3>
 
         {Object.entries(resumeJson).map(([key, value]) => (
           <div key={key} className="flex flex-col">
             <label className="font-medium">{key}</label>
             <input
               className="border rounded px-3 py-2 mt-1"
-              value={typeof value === "string" ? value : JSON.stringify(value)}
+              value={
+                typeof value === "string"
+                  ? value
+                  : JSON.stringify(value)
+              }
               readOnly
             />
           </div>
@@ -87,8 +92,10 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
     return (
       <div className="w-full h-full flex items-center justify-center text-gray-500">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-          {isPreviewModeActive ? "Compiling Preview PDF…" : "Compiling PDF…"}
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2" />
+          {isPreviewModeActive
+            ? "Compiling Preview PDF…"
+            : "Compiling PDF…"}
         </div>
       </div>
     );
@@ -133,14 +140,18 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
         </div>
       )}
 
-      {/* PDF IFRAME - Properly constrained */}
-      <div className="flex-1 overflow-hidden w-screen max-w-full">
+      {/* PDF */}
+      
+
+      <div className="flex-1 overflow-hidden w-full h-full">
         <iframe
           src={`${pdfUrl}#view=FitH`}
           title="Resume PDF Preview"
           className="w-full h-full border-0"
           style={{
-            border: isPreviewModeActive ? "3px solid #2563eb" : "none",
+            border: isPreviewModeActive
+              ? "3px solid #2563eb"
+              : "none",
             boxShadow: isPreviewModeActive
               ? "0 0 20px rgba(37, 99, 235, 0.3)"
               : "none",

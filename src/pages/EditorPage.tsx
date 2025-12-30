@@ -23,11 +23,12 @@ const EditorPage = () => {
   const [previewJson, setPreviewJson] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
-  /** MOBILE STATE */
+  /** MOBILE */
   const [isMobile, setIsMobile] = useState(false);
-  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [isPreviewVisible, setIsPreviewVisible] = useState(true);
+  const [showFullPreview, setShowFullPreview] = useState(false);
 
-  /** Detect screen size */
+  /* Detect screen */
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
@@ -62,17 +63,16 @@ const EditorPage = () => {
       return { role: "ai", type: "ask", text: m.content };
     });
 
-  /** Load resume by resumeId */
+  /* Load resume */
   useEffect(() => {
     if (!resumeId) return;
-
     api.get(`/resume/${resumeId}`).then((res) => {
       setResumeJson(res.data.resumeJson);
       setLoading(false);
     });
   }, [resumeId]);
 
-  /** Load conversation titles + auto-open latest */
+  /* Load conversations */
   useEffect(() => {
     if (!resumeId) return;
 
@@ -89,7 +89,6 @@ const EditorPage = () => {
     });
   }, [resumeId]);
 
-  /** Load selected conversation */
   useEffect(() => {
     if (!resumeId || !conversationId) return;
 
@@ -110,12 +109,12 @@ const EditorPage = () => {
     <div className="w-full h-screen flex flex-col bg-[#eef3fb] overflow-hidden">
       <Navbar />
 
-      {/* ================= MOBILE LAYOUT ================= */}
+      {/* ================= MOBILE ================= */}
       {isMobile ? (
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* PREVIEW SECTION */}
-          {isPreviewOpen && (
-            <div className="flex-shrink-0 h-[50vh] bg-[#f5f7fb] border-b relative overflow-hidden">
+          {/* PREVIEW */}
+          {isPreviewVisible && (
+            <div className="h-[30vh] bg-[#f5f7fb] border-b relative overflow-hidden">
               <ResumePreview
                 resumeId={resumeId!}
                 resumeJson={resumeJson}
@@ -124,26 +123,36 @@ const EditorPage = () => {
                 isPreviewMode={!!previewJson}
               />
 
-              <button
-                onClick={() => setIsPreviewOpen(false)}
-                className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-white shadow px-4 py-2 rounded-full text-sm z-20 hover:bg-gray-50"
-              >
-                Hide Preview
-              </button>
+              {/* SMALLER BUTTONS */}
+              <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2 z-20">
+                <button
+                  onClick={() => setIsPreviewVisible(false)}
+                  className="bg-white shadow px-3 py-1 text-xs min-w-[80px] rounded-full hover:bg-gray-50"
+                >
+                  Hide
+                </button>
+
+                <button
+                  onClick={() => setShowFullPreview(true)}
+                  className="bg-white shadow px-3 py-1 text-xs min-w-[80px] rounded-full hover:bg-gray-50"
+                >
+                  View
+                </button>
+              </div>
             </div>
           )}
 
-          {!isPreviewOpen && (
-            <div className="flex-shrink-0 bg-white border-b">
-              <button
-                onClick={() => setIsPreviewOpen(true)}
-                className="w-full py-3 text-sm flex justify-center items-center gap-2 hover:bg-gray-50 transition"
-              >
-                Show Resume Preview
-              </button>
-            </div>
+          {/* SHOW PREVIEW */}
+          {!isPreviewVisible && (
+            <button
+              onClick={() => setIsPreviewVisible(true)}
+              className="py-2 border-b bg-white text-xs hover:bg-gray-50"
+            >
+              Show Resume Preview
+            </button>
           )}
 
+          {/* CHAT */}
           <div className="flex-1 overflow-hidden bg-white">
             <ChatPanel
               conversation={conversation}
@@ -158,9 +167,32 @@ const EditorPage = () => {
               resumeId={resumeId}
             />
           </div>
+
+          {/* FULL PREVIEW MODAL */}
+          {showFullPreview && (
+            <div className="fixed inset-0 bg-black/40 z-50">
+              <div className="absolute inset-0 bg-[#f5f7fb]">
+                <ResumePreview
+                  resumeId={resumeId!}
+                  resumeJson={resumeJson}
+                  editMode={false}
+                  previewJson={previewJson}
+                  isPreviewMode={!!previewJson}
+                />
+
+                <button
+                  onClick={() => setShowFullPreview(false)}
+                  className="absolute top-14 left-1/2 -translate-x-1/2
+                             bg-white shadow px-4 py-1 text-xs rounded-full hover:bg-gray-50"
+                >
+                  ✕ Close
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
-        /* ================= DESKTOP LAYOUT ================= */
+        /* ================= DESKTOP ================= */
         <div className="flex-1 flex overflow-hidden">
           <div className="w-1/2 bg-white overflow-hidden">
             <ChatPanel

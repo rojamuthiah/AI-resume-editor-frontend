@@ -273,175 +273,190 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
             {/* MESSAGE BUBBLE */}
             <div
-              className={`max-w-[85%] text-xs sm:text-sm leading-relaxed ${
-                m.role === "user"
-                  ? "bg-blue-600 text-white rounded-2xl rounded-br-sm px-4 py-3"
-                  : "bg-white text-gray-800 border rounded-2xl rounded-bl-sm shadow-sm"
-              }`}
-            >
-              {m.role === "user" ? (
-                <div className="px-3 py-2 sm:px-4 sm:py-3">{m.text}</div>
-              ) : m.type === "edit" && m.message ? (
-                // EDIT MESSAGE DISPLAY
-                <div className="p-4 space-y-4">
-                  {/* AI Message Info */}
-                  <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
-                    <p className="text-sm text-gray-800 font-medium">
-                      {m.message.messageinfo}
-                    </p>
-                  </div>
+  className={`flex w-full overflow-hidden ${
+    m.role === "user" ? "justify-end" : "justify-start"
+  }`}
+>
+  <div
+    className={`max-w-[92%] sm:max-w-[85%] text-xs sm:text-sm leading-relaxed
+    break-words whitespace-pre-wrap overflow-hidden
+    ${
+      m.role === "user"
+        ? "bg-blue-600 text-white rounded-2xl rounded-br-sm px-3 py-2 sm:px-4 sm:py-3"
+        : "bg-white text-gray-800 border rounded-2xl rounded-bl-sm shadow-sm"
+    }`}
+  >
+    {m.role === "user" ? (
+      <div className="break-words">{m.text}</div>
+    ) : m.type === "edit" && m.message ? (
+      // ================= EDIT MESSAGE =================
+      <div className="p-3 sm:p-4 space-y-4 break-words">
+        {/* AI Message Info */}
+        <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
+          <p className="text-xs sm:text-sm text-gray-700 font-medium leading-relaxed break-words">
+  {m.message.messageinfo}
+</p>
 
-                  {/* Keywords Box */}
-                  {m.message.keywords && m.message.keywords.length > 0 && (
-                    <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                      <p className="text-xs font-semibold text-green-800 mb-2">
-                        ATS Keywords Matched:
-                      </p>
-                      <div className="flex flex-wrap gap-2">
-                        {m.message.keywords.map(
-                          (keyword: string, idx: number) => (
-                            <span
-                              key={idx}
-                              className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full"
-                            >
-                              {keyword}
-                            </span>
-                          )
-                        )}
-                      </div>
-                    </div>
+        </div>
+
+        {/* Keywords Box */}
+        {m.message.keywords?.length > 0 && (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-3">
+            <p className="text-xs font-semibold text-green-800 mb-2">
+              ATS Keywords Matched:
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {m.message.keywords.map((keyword: string, idx: number) => (
+                <span
+                  key={idx}
+                  className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full break-words"
+                >
+                  {keyword}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Edits */}
+        <div className="space-y-4">
+          <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+            Edits:
+          </p>
+
+          {m.message.keys.map((key: string) => {
+            const edit = m.message.edits[key];
+            if (!edit) return null;
+
+            const isAccepted =
+              m.message.acceptedSections?.includes(key);
+            const isPreviewing = previewingSection === key;
+
+            return (
+              <div
+                key={key}
+                className={`border rounded-lg p-3 sm:p-4 break-words ${
+                  isAccepted
+                    ? "bg-green-50 border-green-300"
+                    : isPreviewing
+                    ? "bg-blue-50 border-blue-300"
+                    : "bg-gray-50"
+                }`}
+              >
+                <div className="flex items-center justify-between mb-3 gap-2">
+                  <p className="text-xs sm:text-sm font-semibold text-blue-700 capitalize break-words">
+                    {key.replace(/([A-Z])/g, " $1").trim()}
+                  </p>
+
+                  {isAccepted && (
+                    <span className="px-2 py-1 bg-green-600 text-white text-xs rounded">
+                      ✓ Accepted
+                    </span>
                   )}
 
-                  {/* Edits Box */}
-                  <div className="space-y-4">
-                    <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
-                      Edits:
-                    </p>
-
-                    {m.message.keys.map((key: string) => {
-                      const edit = m.message.edits[key];
-                      if (!edit) return null;
-
-                      const isAccepted =
-                        m.message.acceptedSections?.includes(key);
-                      const isPreviewing = previewingSection === key;
-
-                      return (
-                        <div
-                          key={key}
-                          className={`border rounded-lg p-4 ${
-                            isAccepted
-                              ? "bg-green-50 border-green-300"
-                              : isPreviewing
-                              ? "bg-blue-50 border-blue-300"
-                              : "bg-gray-50"
-                          }`}
-                        >
-                          <div className="flex items-center justify-between mb-3">
-                            <p className="text-xs sm:text-sm font-semibold text-blue-700 capitalize">
-                              {key.replace(/([A-Z])/g, " $1").trim()}
-                            </p>
-                            {isAccepted && (
-                              <span className="px-2 py-1 bg-green-600 text-white text-xs rounded">
-                                ✓ Accepted
-                              </span>
-                            )}
-                            {isPreviewing && (
-                              <span className="px-2 py-1 bg-blue-600 text-white text-xs rounded">
-                                👁 Previewing
-                              </span>
-                            )}
-                          </div>
-
-                          {/* Before */}
-                          <div className="mb-3">
-                            <p className="text-xs font-medium text-red-600 mb-2">
-                              Before:
-                            </p>
-                            <ul className="list-disc list-inside space-y-1 text-xs text-gray-700 bg-red-50 p-2 rounded">
-                              {edit.before.map((point: string, idx: number) => (
-                                <li key={idx}>{point}</li>
-                              ))}
-                            </ul>
-                          </div>
-
-                          {/* After */}
-                          <div className="mb-3">
-                            <p className="text-xs font-medium text-green-600 mb-2">
-                              After:
-                            </p>
-                            <ul className="list-disc list-inside space-y-1 text-xs text-gray-700 bg-green-50 p-2 rounded">
-                              {edit.after.map((point: string, idx: number) => (
-                                <li key={idx}>{point}</li>
-                              ))}
-                            </ul>
-                          </div>
-
-                          {/* Action Buttons */}
-                          <div className="flex gap-2 mt-3">
-                            {!isAccepted ? (
-                              <>
-                                <button
-                                  onClick={() =>
-                                    handlePreview(key, edit.afterJson)
-                                  }
-                                  className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition"
-                                >
-                                  Preview
-                                </button>
-                                <button
-                                  onClick={() => handleAccept(key, edit, i)}
-                                  className="px-3 py-1.5 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition"
-                                >
-                                  Accept
-                                </button>
-                              </>
-                            ) : (
-                              <button
-                                onClick={() => handleRevert(key, edit, i)}
-                                className="px-3 py-1.5 bg-orange-600 text-white text-xs rounded hover:bg-orange-700 transition"
-                              >
-                                Revert
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  {isPreviewing && (
+                    <span className="px-2 py-1 bg-blue-600 text-white text-xs rounded">
+                      👁 Previewing
+                    </span>
+                  )}
                 </div>
-              ) : (
-                // ASK MESSAGE
-                <div className="px-3 py-2 sm:px-4 sm:py-3">
-                  <ReactMarkdown
-                    remarkPlugins={[remarkGfm, remarkBreaks]}
-                    components={{
-                      p: ({ children }) => (
-                        <p className="mb-2 sm:mb-3 text-xs sm:text-sm last:mb-0">
-                          {children}
-                        </p>
-                      ),
-                      ul: ({ children }) => (
-                        <ul className="list-disc pl-4 sm:pl-5 mb-2 sm:mb-3 space-y-1 text-xs sm:text-sm">
-                          {children}
-                        </ul>
-                      ),
-                      ol: ({ children }) => (
-                        <ol className="list-decimal pl-4 sm:pl-5 mb-2 sm:mb-3 space-y-1 text-xs sm:text-sm">
-                          {children}
-                        </ol>
-                      ),
-                      li: ({ children }) => <li>{children}</li>,
-                      strong: ({ children }) => (
-                        <strong className="font-semibold">{children}</strong>
-                      ),
-                    }}
-                  >
-                    {m.text || ""}
-                  </ReactMarkdown>
+
+                {/* Before */}
+                <div className="mb-3">
+                  <p className="text-xs font-medium text-red-600 mb-2">
+                    Before:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 text-xs text-gray-700 bg-red-50 p-2 rounded break-words">
+                    {edit.before.map((point: string, idx: number) => (
+                      <li key={idx} className="break-words">
+                        {point}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-              )}
-            </div>
+
+                {/* After */}
+                <div className="mb-3">
+                  <p className="text-xs font-medium text-green-600 mb-2">
+                    After:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 text-xs text-gray-700 bg-green-50 p-2 rounded break-words">
+                    {edit.after.map((point: string, idx: number) => (
+                      <li key={idx} className="break-words">
+                        {point}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {!isAccepted ? (
+                    <>
+                      <button
+                        onClick={() =>
+                          handlePreview(key, edit.afterJson)
+                        }
+                        className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition"
+                      >
+                        Preview
+                      </button>
+                      <button
+                        onClick={() => handleAccept(key, edit, i)}
+                        className="px-3 py-1.5 bg-green-600 text-white text-xs rounded hover:bg-green-700 transition"
+                      >
+                        Accept
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => handleRevert(key, edit, i)}
+                      className="px-3 py-1.5 bg-orange-600 text-white text-xs rounded hover:bg-orange-700 transition"
+                    >
+                      Revert
+                    </button>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    ) : (
+      // ================= ASK MESSAGE =================
+      <div className="px-3 py-2 sm:px-4 sm:py-3 break-words">
+        <ReactMarkdown
+          remarkPlugins={[remarkGfm, remarkBreaks]}
+          components={{
+            p: ({ children }) => (
+              <p className="mb-2 sm:mb-3 text-xs sm:text-sm last:mb-0 break-words">
+                {children}
+              </p>
+            ),
+            ul: ({ children }) => (
+              <ul className="list-disc pl-4 sm:pl-5 mb-2 sm:mb-3 space-y-1 text-xs sm:text-sm break-words">
+                {children}
+              </ul>
+            ),
+            ol: ({ children }) => (
+              <ol className="list-decimal pl-4 sm:pl-5 mb-2 sm:mb-3 space-y-1 text-xs sm:text-sm break-words">
+                {children}
+              </ol>
+            ),
+            li: ({ children }) => (
+              <li className="break-words">{children}</li>
+            ),
+            strong: ({ children }) => (
+              <strong className="font-semibold">{children}</strong>
+            ),
+          }}
+        >
+          {m.text || ""}
+        </ReactMarkdown>
+      </div>
+    )}
+  </div>
+</div>
 
             {/* User Avatar */}
             {m.role === "user" && (

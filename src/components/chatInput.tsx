@@ -129,7 +129,8 @@ const ChatInput: React.FC<ChatInputProps> = ({
       </div>
 
       {/* INPUT CONTAINER */}
-      <div className={`flex items-end ${isMobile ? 'gap-2' : 'gap-3'}`}>
+      <div className={`flex items-center ${isMobile ? 'gap-2' : 'gap-3'}`}>
+
         
         {/* TEXTAREA WITH FLOATING PLACEHOLDER */}
         <div className="flex-1 relative">
@@ -169,7 +170,7 @@ const ChatInput: React.FC<ChatInputProps> = ({
           onClick={handleSend}
           disabled={loading || !input.trim()}
           className={`
-            ${isMobile ? 'w-10 h-10' : 'w-12 h-12'} rounded-xl flex items-center justify-center
+            ${isMobile ? 'w-10 h-9' : 'w-12 h-12'} rounded-xl flex items-center justify-center
             shadow-lg transition-all duration-200 transform
             ${loading || !input.trim()
               ? "bg-gray-300 cursor-not-allowed"
