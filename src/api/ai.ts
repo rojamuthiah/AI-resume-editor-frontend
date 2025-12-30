@@ -1,67 +1,67 @@
 import api from "./api";
 
-// Ask AI - Removed resumeJson parameter
+/**
+ * ASK MODE
+ */
 export const askAI = async (
   prompt: string,
-  templateKey: string,
-  category: string,
-  conversationId: string | null
+  conversationId: string | null,
+  resumeId: string
 ) => {
   const response = await api.post("/ai/ask", {
     prompt,
-    templateKey,
-    category,
-    conversationId
+    conversationId,
+    resumeId
   });
   return response.data;
 };
 
-// Edit AI
+/**
+ * EDIT MODE
+ */
 export const editAI = async (
   prompt: string,
-  templateKey: string,
-  category: string,
-  conversationId: string | null
+  conversationId: string | null,
+  resumeId: string
 ) => {
   const response = await api.post("/ai/edit", {
     prompt,
-    templateKey,
-    category,
-    conversationId
+    conversationId,
+    resumeId
   });
   return response.data;
 };
 
-// Accept Edit
+/**
+ * ACCEPT EDIT
+ */
 export const acceptEdit = async (
   section: string,
   sectionData: any,
   beforeData: any,
-  templateKey: string,
-  category: string
+  resumeId: string
 ) => {
   const response = await api.post("/ai/accept", {
     section,
     sectionData,
     beforeData,
-    templateKey,
-    category
+    resumeId
   });
   return response.data;
 };
 
-// Revert Edit
+/**
+ * REVERT EDIT
+ */
 export const revertEdit = async (
   section: string,
   beforeData: any,
-  templateKey: string,
-  category: string
+  resumeId: string
 ) => {
   const response = await api.post("/ai/revert", {
     section,
     beforeData,
-    templateKey,
-    category
+    resumeId
   });
   return response.data;
 };

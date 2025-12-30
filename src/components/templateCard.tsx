@@ -16,7 +16,6 @@ const TemplateCard: React.FC<Props> = ({ template, category }) => {
 
   return (
     <div className="bg-white rounded-xl shadow hover:shadow-lg transition overflow-hidden flex flex-col">
-      
       {/* Preview */}
       <div className="bg-gray-100 border-b">
         <img
@@ -35,7 +34,9 @@ const TemplateCard: React.FC<Props> = ({ template, category }) => {
         </p>
 
         <button
-          onClick={() => navigate(`/editor?template=${template.key}&category=${category}`)}
+          onClick={() =>
+            navigate(`/resumes?template=${template.key}&category=${category}`)
+          }
           className="mt-6 bg-blue-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-blue-700 transition"
         >
           Select Template

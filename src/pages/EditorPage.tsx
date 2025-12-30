@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import ChatPanel from "../components/ChatPanel";
 import ResumePreview from "../components/ResumePreview";
 import Navbar from "../components/Navbar";
@@ -12,21 +12,18 @@ import {
 import type { ConversationMessage } from "../types/conversations";
 
 const EditorPage = () => {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const templateKey = searchParams.get("template");
-  const category = searchParams.get("category");
-  const urlConversationId = searchParams.get("conversation");
+  const { resumeId } = useParams<{ resumeId: string }>();
 
   const [resumeJson, setResumeJson] = useState<any>(null);
   const [conversation, setConversation] = useState<ConversationMessage[]>([]);
-  const [conversationId, setConversationId] = useState<string | null>(urlConversationId);
+  const [conversationId, setConversationId] = useState<string | null>(null);
   const [conversationList, setConversationList] = useState<
     { id: string; title: string; updatedAt?: string }[]
   >([]);
   const [previewJson, setPreviewJson] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
 
-  /** ✅ MOBILE STATE */
+  /** MOBILE STATE */
   const [isMobile, setIsMobile] = useState(false);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
@@ -48,7 +45,10 @@ const EditorPage = () => {
       }
       if (m.type === "edit") {
         try {
-          const parsed = typeof m.content === "string" ? JSON.parse(m.content) : m.content;
+          const parsed =
+            typeof m.content === "string"
+              ? JSON.parse(m.content)
+              : m.content;
           return {
             role: "ai",
             type: "edit",
@@ -62,44 +62,48 @@ const EditorPage = () => {
       return { role: "ai", type: "ask", text: m.content };
     });
 
-  /** Load resume */
+  /** Load resume by resumeId */
   useEffect(() => {
-    if (!templateKey || !category) return;
-    api.get(`/resume/${templateKey}?category=${category}`).then((res) => {
+    if (!resumeId) return;
+
+    api.get(`/resume/${resumeId}`).then((res) => {
       setResumeJson(res.data.resumeJson);
       setLoading(false);
     });
-  }, [templateKey, category]);
+  }, [resumeId]);
 
-  /** Load titles + auto-open latest */
+  /** Load conversation titles + auto-open latest */
   useEffect(() => {
-    if (!templateKey) return;
-    getConversationTitles(templateKey).then(async (titles = []) => {
+    if (!resumeId) return;
+
+    getConversationTitles(resumeId).then(async (titles = []) => {
       setConversationList(titles);
+
       if (!conversationId && titles.length > 0) {
-        const latest = await getLatestConversation(templateKey);
+        const latest = await getLatestConversation(resumeId);
         if (!latest) return;
+
         setConversationId(latest.conversationId);
         setConversation(normalizeConversation(latest.messages));
-        setSearchParams({
-          template: templateKey,
-          category: category || "",
-          conversation: latest.conversationId,
-        });
       }
     });
-  }, [templateKey]);
+  }, [resumeId]);
 
   /** Load selected conversation */
   useEffect(() => {
-    if (!templateKey || !conversationId) return;
-    getConversationById(templateKey, conversationId).then((c) => {
+    if (!resumeId || !conversationId) return;
+
+    getConversationById(resumeId, conversationId).then((c) => {
       setConversation(normalizeConversation(c.messages));
     });
-  }, [templateKey, conversationId]);
+  }, [resumeId, conversationId]);
 
   if (loading || !resumeJson) {
-    return <div className="h-screen flex items-center justify-center">Loading…</div>;
+    return (
+      <div className="h-screen flex items-center justify-center">
+        Loading…
+      </div>
+    );
   }
 
   return (
@@ -109,20 +113,17 @@ const EditorPage = () => {
       {/* ================= MOBILE LAYOUT ================= */}
       {isMobile ? (
         <div className="flex-1 flex flex-col overflow-hidden">
-
           {/* PREVIEW SECTION */}
           {isPreviewOpen && (
             <div className="flex-shrink-0 h-[50vh] bg-[#f5f7fb] border-b relative overflow-hidden">
               <ResumePreview
+                resumeId={resumeId!}
                 resumeJson={resumeJson}
                 editMode={false}
-                templateKey={templateKey}
-                category={category}
                 previewJson={previewJson}
                 isPreviewMode={!!previewJson}
               />
 
-              {/* Collapse button */}
               <button
                 onClick={() => setIsPreviewOpen(false)}
                 className="absolute bottom-2 left-1/2 -translate-x-1/2 bg-white shadow px-4 py-2 rounded-full text-sm z-20 hover:bg-gray-50"
@@ -132,7 +133,6 @@ const EditorPage = () => {
             </div>
           )}
 
-          {/* EXPAND BAR */}
           {!isPreviewOpen && (
             <div className="flex-shrink-0 bg-white border-b">
               <button
@@ -144,7 +144,6 @@ const EditorPage = () => {
             </div>
           )}
 
-          {/* CHAT */}
           <div className="flex-1 overflow-hidden bg-white">
             <ChatPanel
               conversation={conversation}
@@ -152,15 +151,13 @@ const EditorPage = () => {
               resumeJson={resumeJson}
               setResumeJson={setResumeJson}
               setPreviewJson={setPreviewJson}
-              templateKey={templateKey}
-              category={category}
               conversationId={conversationId}
               conversationList={conversationList}
               onSelectConversation={(id) => setConversationId(id)}
               onConversationCreated={({ id }) => setConversationId(id)}
+              resumeId={resumeId}
             />
           </div>
-
         </div>
       ) : (
         /* ================= DESKTOP LAYOUT ================= */
@@ -172,21 +169,19 @@ const EditorPage = () => {
               resumeJson={resumeJson}
               setResumeJson={setResumeJson}
               setPreviewJson={setPreviewJson}
-              templateKey={templateKey}
-              category={category}
               conversationId={conversationId}
               conversationList={conversationList}
               onSelectConversation={(id) => setConversationId(id)}
               onConversationCreated={({ id }) => setConversationId(id)}
+              resumeId={resumeId}
             />
           </div>
 
           <div className="w-1/2 bg-[#f5f7fb] overflow-hidden">
             <ResumePreview
+              resumeId={resumeId!}
               resumeJson={resumeJson}
               editMode={false}
-              templateKey={templateKey}
-              category={category}
               previewJson={previewJson}
               isPreviewMode={!!previewJson}
             />

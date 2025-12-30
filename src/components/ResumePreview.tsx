@@ -4,8 +4,7 @@ import api from "../api/api";
 interface ResumePreviewProps {
   resumeJson: any;
   editMode: boolean;
-  templateKey: string | null;
-  category: string | null;
+  resumeId: string;
   previewJson?: any | null;
   isPreviewMode?: boolean;
 }
@@ -13,32 +12,35 @@ interface ResumePreviewProps {
 const ResumePreview: React.FC<ResumePreviewProps> = ({ 
   resumeJson, 
   editMode, 
-  templateKey,
-  category,
+  resumeId,
   previewJson,
   isPreviewMode
 }) => {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [previousResumeJson, setPreviousResumeJson] = useState<any>(null);
   const [previousPreviewJson, setPreviousPreviewJson] = useState<any>(null);
 
   const isPreviewModeActive = !!previewJson || isPreviewMode;
 
   /* ================= PDF RENDER ================= */
   useEffect(() => {
-    if (!templateKey || !category) return;
+    if (!resumeId) return;
     if (editMode) return;
 
-    // Check if preview data actually changed
-    const previewChanged = JSON.stringify(previousPreviewJson) !== JSON.stringify(previewJson);
-    
-    if (!previewChanged && pdfUrl) {
-      return; // Don't re-render if nothing changed
-    }
+    const resumeChanged =
+      JSON.stringify(previousResumeJson) !== JSON.stringify(resumeJson);
+    const previewChanged =
+      JSON.stringify(previousPreviewJson) !== JSON.stringify(previewJson);
+
+    // Re-render if either resumeJson or previewJson changed
+    if (!resumeChanged && !previewChanged && pdfUrl) return;
 
     setLoading(true);
 
-    const requestBody: any = { templateKey, category };
+    const requestBody: any = {
+      resumeId
+    };
 
     if (isPreviewModeActive) {
       requestBody.previewMode = true;
@@ -53,15 +55,12 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
 
         if (pdfUrl) URL.revokeObjectURL(pdfUrl);
         setPdfUrl(fileURL);
+        setPreviousResumeJson(resumeJson);
         setPreviousPreviewJson(previewJson);
       })
       .catch((err) => console.error("PDF render error:", err))
       .finally(() => setLoading(false));
-
-    return () => {
-      // Cleanup on unmount
-    };
-  }, [resumeJson, previewJson, editMode, templateKey, category]);
+  }, [resumeId, resumeJson, previewJson, editMode]);
 
   /* ================= EDIT MODE ================= */
   if (editMode) {
@@ -137,17 +136,16 @@ const ResumePreview: React.FC<ResumePreviewProps> = ({
       {/* PDF IFRAME - Properly constrained */}
       <div className="flex-1 overflow-hidden w-screen max-w-full">
         <iframe
-  src={`${pdfUrl}#view=FitH`}
-  title="Resume PDF Preview"
-  className="w-full h-full border-0"
-  style={{
-    border: isPreviewModeActive ? "3px solid #2563eb" : "none",
-    boxShadow: isPreviewModeActive
-      ? "0 0 20px rgba(37, 99, 235, 0.3)"
-      : "none",
-  }}
-/>
-
+          src={`${pdfUrl}#view=FitH`}
+          title="Resume PDF Preview"
+          className="w-full h-full border-0"
+          style={{
+            border: isPreviewModeActive ? "3px solid #2563eb" : "none",
+            boxShadow: isPreviewModeActive
+              ? "0 0 20px rgba(37, 99, 235, 0.3)"
+              : "none",
+          }}
+        />
       </div>
     </div>
   );

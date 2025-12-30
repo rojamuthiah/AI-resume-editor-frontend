@@ -33,13 +33,16 @@ export type ConversationMessage =
 export interface ChatPanelProps {
   conversation: ConversationMessage[];
   setConversation: React.Dispatch<React.SetStateAction<ConversationMessage[]>>;
+
   resumeJson: any;
   setResumeJson: React.Dispatch<React.SetStateAction<any>>;
   setPreviewJson: React.Dispatch<React.SetStateAction<any | null>>;
-  templateKey: string | null;
-  category: string | null;
+
   conversationId: string | null;
   conversationList: { id: string; title: string }[];
+
   onSelectConversation: (id: string | null) => void;
   onConversationCreated: (meta: { id: string; title: string }) => void;
+
+  resumeId: string;
 }

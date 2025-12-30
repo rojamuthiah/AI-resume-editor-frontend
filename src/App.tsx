@@ -10,18 +10,18 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import CategoryPage from "./pages/CategoryPage";
 import TemplatePage from "./pages/TemplatePage";
+import ResumesPage from "./pages/ResumesPage";
 import EditorPage from "./pages/EditorPage";
 import HomePage from "./pages/HomePage";
 import Navbar from "./components/Navbar";
 
-/* Layout wrapper to conditionally show Navbar */
 function AppLayout() {
   const location = useLocation();
 
   const hideNavbar =
     location.pathname === "/login" ||
     location.pathname === "/signup" ||
-    location.pathname === "/editor";
+    location.pathname.startsWith("/editor");
 
   return (
     <>
@@ -39,7 +39,10 @@ function AppLayout() {
         <Route path="/home" element={<HomePage />} />
         <Route path="/templates/categories" element={<CategoryPage />} />
         <Route path="/templates" element={<TemplatePage />} />
-        <Route path="/editor" element={<EditorPage />} />
+
+        {/* NEW FLOW */}
+        <Route path="/resumes" element={<ResumesPage />} />
+        <Route path="/editor/:resumeId" element={<EditorPage />} />
       </Routes>
     </>
   );

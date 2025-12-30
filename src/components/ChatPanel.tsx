@@ -15,18 +15,22 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   resumeJson,
   setResumeJson,
   setPreviewJson,
-  templateKey,
-  category,
   conversationId,
   conversationList,
   onSelectConversation,
   onConversationCreated,
+  resumeId,
 }) => {
   const [mode, setMode] = useState<"ask" | "edit">("ask");
   const [loading, setLoading] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: "error" | "success" } | null>(null);
-  const [previewingSection, setPreviewingSection] = useState<string | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "error" | "success";
+  } | null>(null);
+  const [previewingSection, setPreviewingSection] = useState<string | null>(
+    null
+  );
   const [showChatHistory, setShowChatHistory] = useState(true);
 
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
@@ -39,9 +43,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   const handlePreview = (sectionKey: string, afterJson: any) => {
     const previewData = {
       ...resumeJson,
-      [sectionKey]: afterJson
+      [sectionKey]: afterJson,
     };
-    
+
     setPreviewJson(previewData);
     setPreviewingSection(sectionKey);
   };
@@ -52,46 +56,51 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   };
 
   const handleAccept = async (
-    sectionKey: string, 
-    editData: { before: string[]; after: string[]; beforeJson: any; afterJson: any }, 
+    sectionKey: string,
+    editData: {
+      before: string[];
+      after: string[];
+      beforeJson: any;
+      afterJson: any;
+    },
     messageIndex: number
   ) => {
-    if (!templateKey || !category) return;
+    if (!resumeId) return;
 
     try {
       if (previewingSection === sectionKey) {
         handleDismissPreview();
       }
 
-      const sectionData = editData.afterJson;
-      
       const res = await acceptEdit(
-        sectionKey, 
-        sectionData, 
-        editData.beforeJson, 
-        templateKey,
-        category
+        sectionKey,
+        editData.afterJson,
+        editData.beforeJson,
+        resumeId
       );
-      
+
       if (!res.success) {
         setToast({
           message: res.message || "Failed to accept edit",
-          type: "error"
+          type: "error",
         });
         return;
       }
-      
+
       setResumeJson(res.resumeJson);
-      
+
       setConversation((prev) =>
-        prev.map((msg, idx) => 
+        prev.map((msg, idx) =>
           idx === messageIndex && msg.type === "edit" && msg.message
-            ? { 
-                ...msg, 
-                message: { 
-                  ...msg.message, 
-                  acceptedSections: [...(msg.message.acceptedSections || []), sectionKey] 
-                } 
+            ? {
+                ...msg,
+                message: {
+                  ...msg.message,
+                  acceptedSections: [
+                    ...(msg.message.acceptedSections || []),
+                    sectionKey,
+                  ],
+                },
               }
             : msg
         )
@@ -99,12 +108,12 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
       setToast({
         message: `Successfully updated ${sectionKey}`,
-        type: "success"
+        type: "success",
       });
     } catch (err: any) {
       setToast({
         message: err.response?.data?.message || "Failed to accept edit",
-        type: "error"
+        type: "error",
       });
     }
   };
@@ -114,35 +123,32 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     editData: { before: string[]; beforeJson: any },
     messageIndex: number
   ) => {
-    if (!templateKey || !category) return;
+    if (!resumeId) return;
 
     try {
-      const res = await revertEdit(
-        sectionKey, 
-        editData.beforeJson, 
-        templateKey,
-        category
-      );
-      
+      const res = await revertEdit(sectionKey, editData.beforeJson, resumeId);
+
       if (!res.success) {
         setToast({
           message: res.message || "Revert is not possible",
-          type: "error"
+          type: "error",
         });
         return;
       }
-      
+
       setResumeJson(res.resumeJson);
-      
+
       setConversation((prev) =>
-        prev.map((msg, idx) => 
+        prev.map((msg, idx) =>
           idx === messageIndex && msg.type === "edit" && msg.message
-            ? { 
-                ...msg, 
-                message: { 
-                  ...msg.message, 
-                  acceptedSections: (msg.message.acceptedSections || []).filter((s: string) => s !== sectionKey)
-                } 
+            ? {
+                ...msg,
+                message: {
+                  ...msg.message,
+                  acceptedSections: (msg.message.acceptedSections || []).filter(
+                    (s: string) => s !== sectionKey
+                  ),
+                },
               }
             : msg
         )
@@ -150,24 +156,21 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
       setToast({
         message: `Reverted ${sectionKey}`,
-        type: "success"
+        type: "success",
       });
     } catch (err: any) {
       setToast({
         message: err.response?.data?.message || "Revert is not possible",
-        type: "error"
+        type: "error",
       });
     }
   };
 
   const sendMessage = async (text: string) => {
-    if (!text.trim() || !templateKey || !category) return;
-  
-    setConversation((prev) => [
-      ...prev,
-      { role: "user", type: mode, text },
-    ]);
-  
+    if (!text.trim() || !resumeId) return;
+
+    setConversation((prev) => [...prev, { role: "user", type: mode, text }]);
+
     setPreviewJson(null);
     setPreviewingSection(null);
     setLoading(true);
@@ -175,25 +178,24 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     try {
       let res;
       if (mode === "ask") {
-        // ✅ REMOVED resumeJson parameter
-        res = await askAI(text, templateKey, category, conversationId);
+        res = await askAI(text, conversationId, resumeId);
         setConversation((prev) => [
           ...prev,
           { role: "ai", type: "ask", text: res.message },
         ]);
       } else {
-        res = await editAI(text, templateKey, category, conversationId);
+        res = await editAI(text, conversationId, resumeId);
         setConversation((prev) => [
           ...prev,
           {
             role: "ai",
             type: "edit",
             message: res.message,
-            text: res.message.messageinfo 
+            text: res.message.messageinfo,
           },
         ]);
       }
-  
+
       if (!conversationId && res.conversationId) {
         onConversationCreated({
           id: res.conversationId,
@@ -204,7 +206,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
       console.error("Send message error:", err);
       setToast({
         message: "Failed to send message",
-        type: "error"
+        type: "error",
       });
     } finally {
       setLoading(false);
@@ -219,10 +221,10 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
     <div className="flex flex-col h-full bg-white border-r">
       {/* Toast Notification */}
       {toast && (
-        <Toast 
-          message={toast.message} 
-          type={toast.type} 
-          onClose={() => setToast(null)} 
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
         />
       )}
 
@@ -271,59 +273,73 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
             {/* MESSAGE BUBBLE */}
             <div
-              className={`max-w-[85%] text-sm leading-relaxed ${
+              className={`max-w-[85%] text-xs sm:text-sm leading-relaxed ${
                 m.role === "user"
                   ? "bg-blue-600 text-white rounded-2xl rounded-br-sm px-4 py-3"
                   : "bg-white text-gray-800 border rounded-2xl rounded-bl-sm shadow-sm"
               }`}
             >
               {m.role === "user" ? (
-                <div className="px-4 py-3">{m.text}</div>
+                <div className="px-3 py-2 sm:px-4 sm:py-3">{m.text}</div>
               ) : m.type === "edit" && m.message ? (
                 // EDIT MESSAGE DISPLAY
                 <div className="p-4 space-y-4">
                   {/* AI Message Info */}
                   <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
-                    <p className="text-sm text-gray-800 font-medium">{m.message.messageinfo}</p>
+                    <p className="text-sm text-gray-800 font-medium">
+                      {m.message.messageinfo}
+                    </p>
                   </div>
 
                   {/* Keywords Box */}
                   {m.message.keywords && m.message.keywords.length > 0 && (
                     <div className="bg-green-50 border border-green-200 rounded-lg p-3">
-                      <p className="text-xs font-semibold text-green-800 mb-2">ATS Keywords Matched:</p>
+                      <p className="text-xs font-semibold text-green-800 mb-2">
+                        ATS Keywords Matched:
+                      </p>
                       <div className="flex flex-wrap gap-2">
-                        {m.message.keywords.map((keyword: string, idx: number) => (
-                          <span
-                            key={idx}
-                            className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full"
-                          >
-                            {keyword}
-                          </span>
-                        ))}
+                        {m.message.keywords.map(
+                          (keyword: string, idx: number) => (
+                            <span
+                              key={idx}
+                              className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full"
+                            >
+                              {keyword}
+                            </span>
+                          )
+                        )}
                       </div>
                     </div>
                   )}
 
                   {/* Edits Box */}
                   <div className="space-y-4">
-                    <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Edits:</p>
-                    
+                    <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">
+                      Edits:
+                    </p>
+
                     {m.message.keys.map((key: string) => {
                       const edit = m.message.edits[key];
                       if (!edit) return null;
 
-                      const isAccepted = m.message.acceptedSections?.includes(key);
+                      const isAccepted =
+                        m.message.acceptedSections?.includes(key);
                       const isPreviewing = previewingSection === key;
 
                       return (
-                        <div key={key} className={`border rounded-lg p-4 ${
-                          isAccepted ? "bg-green-50 border-green-300" : 
-                          isPreviewing ? "bg-blue-50 border-blue-300" : 
-                          "bg-gray-50"
-                        }`}>
+                        <div
+                          key={key}
+                          className={`border rounded-lg p-4 ${
+                            isAccepted
+                              ? "bg-green-50 border-green-300"
+                              : isPreviewing
+                              ? "bg-blue-50 border-blue-300"
+                              : "bg-gray-50"
+                          }`}
+                        >
                           <div className="flex items-center justify-between mb-3">
-                            <p className="text-sm font-semibold text-blue-700 capitalize">
-                              {key.replace(/([A-Z])/g, ' $1').trim()}
+                            <p className="text-xs sm:text-sm font-semibold text-blue-700 capitalize">
+                              {key.replace(/([A-Z])/g, " $1").trim()}
                             </p>
                             {isAccepted && (
                               <span className="px-2 py-1 bg-green-600 text-white text-xs rounded">
@@ -339,7 +355,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
                           {/* Before */}
                           <div className="mb-3">
-                            <p className="text-xs font-medium text-red-600 mb-2">Before:</p>
+                            <p className="text-xs font-medium text-red-600 mb-2">
+                              Before:
+                            </p>
                             <ul className="list-disc list-inside space-y-1 text-xs text-gray-700 bg-red-50 p-2 rounded">
                               {edit.before.map((point: string, idx: number) => (
                                 <li key={idx}>{point}</li>
@@ -349,7 +367,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
 
                           {/* After */}
                           <div className="mb-3">
-                            <p className="text-xs font-medium text-green-600 mb-2">After:</p>
+                            <p className="text-xs font-medium text-green-600 mb-2">
+                              After:
+                            </p>
                             <ul className="list-disc list-inside space-y-1 text-xs text-gray-700 bg-green-50 p-2 rounded">
                               {edit.after.map((point: string, idx: number) => (
                                 <li key={idx}>{point}</li>
@@ -362,7 +382,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                             {!isAccepted ? (
                               <>
                                 <button
-                                  onClick={() => handlePreview(key, edit.afterJson)}
+                                  onClick={() =>
+                                    handlePreview(key, edit.afterJson)
+                                  }
                                   className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition"
                                 >
                                   Preview
@@ -390,15 +412,29 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
                 </div>
               ) : (
                 // ASK MESSAGE
-                <div className="px-4 py-3">
+                <div className="px-3 py-2 sm:px-4 sm:py-3">
                   <ReactMarkdown
                     remarkPlugins={[remarkGfm, remarkBreaks]}
                     components={{
-                      p: ({ children }) => <p className="mb-3 last:mb-0">{children}</p>,
-                      ul: ({ children }) => <ul className="list-disc pl-5 mb-3 space-y-1">{children}</ul>,
-                      ol: ({ children }) => <ol className="list-decimal pl-5 mb-3 space-y-1">{children}</ol>,
+                      p: ({ children }) => (
+                        <p className="mb-2 sm:mb-3 text-xs sm:text-sm last:mb-0">
+                          {children}
+                        </p>
+                      ),
+                      ul: ({ children }) => (
+                        <ul className="list-disc pl-4 sm:pl-5 mb-2 sm:mb-3 space-y-1 text-xs sm:text-sm">
+                          {children}
+                        </ul>
+                      ),
+                      ol: ({ children }) => (
+                        <ol className="list-decimal pl-4 sm:pl-5 mb-2 sm:mb-3 space-y-1 text-xs sm:text-sm">
+                          {children}
+                        </ol>
+                      ),
                       li: ({ children }) => <li>{children}</li>,
-                      strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                      strong: ({ children }) => (
+                        <strong className="font-semibold">{children}</strong>
+                      ),
                     }}
                   >
                     {m.text || ""}
@@ -410,8 +446,18 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
             {/* User Avatar */}
             {m.role === "user" && (
               <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center shadow">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M5.121 17.804A13.937 13.937 0 0112 15c2.5 0 4.847.655 6.879 1.804M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
                 </svg>
               </div>
             )}
