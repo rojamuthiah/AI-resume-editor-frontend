@@ -1,0 +1,13 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 60 100"
+>
+  <g transform="translate(0, 5)">
+    <path d="M0 0 H45 L60 15 V95 H0 Z" fill="black" />
+    <path d="M45 0 V15 H60 Z" fill="#9CA3AF" />
+
+    <rect x="10" y="30" width="40" height="6" fill="#E5E7EB" />
+    <rect x="10" y="48" width="40" height="6" fill="#E5E7EB" />
+    <rect x="10" y="66" width="25" height="6" fill="#E5E7EB" />
+  </g>
+</svg>
