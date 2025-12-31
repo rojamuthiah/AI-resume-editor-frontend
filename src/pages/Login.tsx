@@ -2,7 +2,7 @@ import { useState, useContext } from "react";
 import { loginUser } from "../api/auth";
 import { AuthContext } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
-import { Logo } from "../assets/logo";
+import { Logo } from "../assets/Logo";
 
 export default function Login() {
   const navigate = useNavigate();
