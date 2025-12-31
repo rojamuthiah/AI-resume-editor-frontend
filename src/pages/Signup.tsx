@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { registerUser } from "../api/auth";
 import { useNavigate, Link } from "react-router-dom";
-import { Logo } from "../assets/Logo";
+import { Logo } from "../assets/AppLogo";
 
 export default function Signup() {
   const navigate = useNavigate();

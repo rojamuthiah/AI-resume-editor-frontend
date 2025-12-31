@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useContext, useState, useRef, useEffect } from "react";
 import { AuthContext } from "../context/AuthContext";
 import { NavLogo } from "../assets/NavLogo";
-import { Logo } from "../assets/Logo";
+import { Logo } from "../assets/AppLogo";
 
 const Navbar = () => {
   const location = useLocation();
