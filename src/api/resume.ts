@@ -1,8 +1,7 @@
 import api from "./api";
 
 /**
- * Create a new resume from a template + category
- * name is mandatory, description optional
+ * Create a new resume
  */
 export const createResume = (
   templateKey: string,
@@ -18,24 +17,21 @@ export const createResume = (
   });
 
 /**
- * Get all resumes for a user by template + category
+ * Get all resumes
  */
 export const fetchResumes = (templateKey: string, category: string) =>
   api.get("/resume", {
-    params: {
-      templateKey,
-      category
-    }
+    params: { templateKey, category }
   });
 
 /**
- * Get a single resume by resumeId
+ * Get single resume
  */
 export const fetchResumeById = (resumeId: string) =>
   api.get(`/resume/${resumeId}`);
 
 /**
- * Render resume PDF
+ * Render PDF
  */
 export const renderResume = (
   resumeId: string,
@@ -47,3 +43,22 @@ export const renderResume = (
     previewMode,
     previewData
   });
+
+/**
+ * Rename resume
+ */
+export const renameResume = (
+  resumeId: string,
+  name: string,
+  description?: string
+) =>
+  api.patch(`/resume/${resumeId}`, {
+    name,
+    description
+  });
+
+/**
+ * Delete resume
+ */
+export const deleteResume = (resumeId: string) =>
+  api.delete(`/resume/${resumeId}`);

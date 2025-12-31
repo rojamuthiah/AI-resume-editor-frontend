@@ -1,39 +1,53 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 
 interface Props {
   open: boolean;
   onClose: () => void;
   onCreate: (name: string, description?: string) => void;
+
+  // 🔹 NEW (optional)
+  title?: string;
+  initialName?: string;
+  initialDescription?: string;
 }
 
 const CreateResumeDialog: React.FC<Props> = ({
   open,
   onClose,
-  onCreate
+  onCreate,
+  title = "Create Resume",
+  initialName = "",
+  initialDescription = ""
 }) => {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [error, setError] = useState("");
 
+  // 🔹 IMPORTANT: reset values when dialog opens
+  useEffect(() => {
+    if (open) {
+      setName(initialName);
+      setDescription(initialDescription);
+      setError("");
+    }
+  }, [open, initialName, initialDescription]);
+
   if (!open) return null;
 
-  const handleCreate = () => {
+  const handleSubmit = () => {
     if (!name.trim()) {
       setError("Resume name is required");
       return;
     }
 
     onCreate(name.trim(), description.trim() || undefined);
-    setName("");
-    setDescription("");
-    setError("");
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
       <div className="bg-white w-full max-w-md rounded-xl shadow-lg p-6">
         <h2 className="text-lg font-semibold mb-4">
-          Create Resume
+          {title}
         </h2>
 
         <div className="mb-4">
@@ -73,11 +87,12 @@ const CreateResumeDialog: React.FC<Props> = ({
           >
             Cancel
           </button>
+
           <button
-            onClick={handleCreate}
+            onClick={handleSubmit}
             className="px-4 py-2 text-sm rounded-lg bg-blue-600 text-white hover:bg-blue-700"
           >
-            Create
+            {title === "Create Resume" ? "Create" : "Save"}
           </button>
         </div>
       </div>

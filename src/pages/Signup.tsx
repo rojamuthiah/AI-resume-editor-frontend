@@ -21,8 +21,8 @@ export default function Signup() {
     try {
       await registerUser(form);
       navigate("/login");
-    } catch {
-      setError("Email already exists");
+    } catch (err) {
+      setError(err.response?.data?.message || "Registration failed");
     }
   }
 

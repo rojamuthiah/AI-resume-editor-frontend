@@ -2,7 +2,7 @@ import { useState, useContext } from "react";
 import { loginUser } from "../api/auth";
 import { AuthContext } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
-import { Logo } from "../assets/Logo";
+import { Logo } from "../assets/logo";
 
 export default function Login() {
   const navigate = useNavigate();
@@ -16,15 +16,18 @@ export default function Login() {
   }
 
   async function handleSubmit(e) {
-    e.preventDefault();
-    try {
-      const data = await loginUser(form);
-      login(data);
-      navigate("/templates/categories");
-    } catch {
-      setError("Invalid email or password");
-    }
+  e.preventDefault();
+  try {
+    const res = await loginUser(form);
+
+    login(res.user);
+
+    navigate("/templates/categories");
+  } catch {
+    setError("Invalid email or password");
   }
+}
+
 
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">

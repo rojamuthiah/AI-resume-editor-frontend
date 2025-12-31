@@ -65,3 +65,17 @@ export const revertEdit = async (
   });
   return response.data;
 };
+
+/**
+ * RESUME ANALYZER
+ */
+export const analyzeResume = async (
+  resumeId: string,
+  jobDescription: string
+) => {
+  const response = await api.post("/ai/analyse", {
+    resumeId,
+    jobDescription
+  });
+  return response.data;
+};

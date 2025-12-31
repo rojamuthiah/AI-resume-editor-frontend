@@ -14,6 +14,7 @@ import ResumesPage from "./pages/ResumesPage";
 import EditorPage from "./pages/EditorPage";
 import HomePage from "./pages/HomePage";
 import Navbar from "./components/Navbar";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function AppLayout() {
   const location = useLocation();
@@ -35,14 +36,51 @@ function AppLayout() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
 
-        {/* App pages */}
-        <Route path="/home" element={<HomePage />} />
-        <Route path="/templates/categories" element={<CategoryPage />} />
-        <Route path="/templates" element={<TemplatePage />} />
+        {/* Protected pages */}
+        <Route
+          path="/home"
+          element={
+            <ProtectedRoute>
+              <HomePage />
+            </ProtectedRoute>
+          }
+        />
 
-        {/* NEW FLOW */}
-        <Route path="/resumes" element={<ResumesPage />} />
-        <Route path="/editor/:resumeId" element={<EditorPage />} />
+        <Route
+          path="/templates/categories"
+          element={
+            <ProtectedRoute>
+              <CategoryPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/templates"
+          element={
+            <ProtectedRoute>
+              <TemplatePage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/resumes"
+          element={
+            <ProtectedRoute>
+              <ResumesPage />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/editor/:resumeId"
+          element={
+            <ProtectedRoute>
+              <EditorPage />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </>
   );
