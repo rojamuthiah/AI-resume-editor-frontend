@@ -153,7 +153,7 @@ const EditorPage = () => {
               onSelectConversation={setConversationId}
               onConversationCreated={({ id }) => setConversationId(id)}
               resumeId={resumeId}
-              onAccept={() => setResumeVersion((v) => v + 1)}
+              onVersionBump={() => setResumeVersion((v) => v + 1)}
             />
           </div>
 
