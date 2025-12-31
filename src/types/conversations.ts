@@ -43,6 +43,7 @@ export interface ChatPanelProps {
 
   onSelectConversation: (id: string | null) => void;
   onConversationCreated: (meta: { id: string; title: string }) => void;
+  onVersionBump: () => void;
 
   resumeId: string;
 }

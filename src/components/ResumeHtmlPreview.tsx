@@ -37,7 +37,11 @@ const ResumeHtmlPreview: React.FC<ResumeHtmlPreviewProps> = ({
     try {
       setPreviewingPdf(true);
 
-      const res = await renderResumePdf(resumeId, !!previewJson, previewJson);
+      const res = await renderResumePdf(
+        resumeId,
+        !!previewJson,
+        previewJson
+      );
 
       const blob = new Blob([res.data], {
         type: "application/pdf",
@@ -125,11 +129,11 @@ const ResumeHtmlPreview: React.FC<ResumeHtmlPreviewProps> = ({
 
       {/* FLOATING ACTION BUTTONS (PILL GUARANTEED) */}
       <div className="flex items-center justify-center gap-2 px-4 py-3 bg-white">
-        {/* PREVIEW PDF — GREEN */}
-        <button
-          onClick={handlePreviewPdf}
-          disabled={previewingPdf}
-          className="
+  {/* PREVIEW PDF — GREEN */}
+  <button
+    onClick={handlePreviewPdf}
+    disabled={previewingPdf}
+    className="
       h-8 px-5
       text-xs font-medium
       bg-green-600
@@ -140,14 +144,14 @@ const ResumeHtmlPreview: React.FC<ResumeHtmlPreviewProps> = ({
       transition
       disabled:opacity-60
     "
-        >
-          {previewingPdf ? "Opening…" : "Preview PDF"}
-        </button>
+  >
+    {previewingPdf ? "Opening…" : "Preview PDF"}
+  </button>
 
-        {/* DOWNLOAD PDF — BLUE */}
-        <button
-          onClick={handleDownloadPdf}
-          className="
+  {/* DOWNLOAD PDF — BLUE */}
+  <button
+    onClick={handleDownloadPdf}
+    className="
       h-8 px-5
       text-xs font-medium
       bg-blue-600
@@ -157,10 +161,12 @@ const ResumeHtmlPreview: React.FC<ResumeHtmlPreviewProps> = ({
       hover:bg-blue-700
       transition
     "
-        >
-          Download PDF
-        </button>
-      </div>
+  >
+    Download PDF
+  </button>
+</div>
+
+
 
       {/* HTML PREVIEW */}
       <div className="absolute inset-0 pt-12 overflow-y-auto p-6">

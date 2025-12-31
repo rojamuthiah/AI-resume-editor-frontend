@@ -13,7 +13,7 @@ export const createResume = (
     templateKey,
     category,
     name,
-    description
+    description,
   });
 
 /**
@@ -21,7 +21,7 @@ export const createResume = (
  */
 export const fetchResumes = (templateKey: string, category: string) =>
   api.get("/resume", {
-    params: { templateKey, category }
+    params: { templateKey, category },
   });
 
 /**
@@ -30,19 +30,37 @@ export const fetchResumes = (templateKey: string, category: string) =>
 export const fetchResumeById = (resumeId: string) =>
   api.get(`/resume/${resumeId}`);
 
-/**
- * Render PDF
- */
-export const renderResume = (
+/* =========================================================
+   ✅ NEW: Render HTML (LIVE PREVIEW)
+   ========================================================= */
+export const renderResumeHtml = (
+  resumeId: string,
+  previewData?: any
+) =>
+  api.post("/resume/render-html", {
+    resumeId,
+    previewData,
+  });
+
+/* =========================================================
+   📄 PDF EXPORT (ON DEMAND ONLY)
+   ========================================================= */
+export const renderResumePdf = (
   resumeId: string,
   previewMode = false,
   previewData?: any
 ) =>
-  api.post("/resume/render", {
-    resumeId,
-    previewMode,
-    previewData
-  });
+  api.post(
+    "/resume/render",
+    {
+      resumeId,
+      previewMode,
+      previewData,
+    },
+    {
+      responseType: "blob",
+    }
+  );
 
 /**
  * Rename resume
@@ -54,7 +72,7 @@ export const renameResume = (
 ) =>
   api.patch(`/resume/${resumeId}`, {
     name,
-    description
+    description,
   });
 
 /**
@@ -62,3 +80,12 @@ export const renameResume = (
  */
 export const deleteResume = (resumeId: string) =>
   api.delete(`/resume/${resumeId}`);
+
+
+/* =========================================================
+   ⬇ DOWNLOAD PDF (SYSTEM DOWNLOAD)
+   ========================================================= */
+export const downloadResumePdf = (resumeId: string) =>
+  api.get(`/resume/${resumeId}/download`, {
+    responseType: "blob",
+  });

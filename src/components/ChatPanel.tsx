@@ -20,6 +20,7 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   onSelectConversation,
   onConversationCreated,
   resumeId,
+  onVersionBump,
 }) => {
   const [mode, setMode] = useState<"ask" | "edit">("ask");
   const [loading, setLoading] = useState(false);
@@ -56,67 +57,72 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
   };
 
   const handleAccept = async (
-    sectionKey: string,
-    editData: {
-      before: string[];
-      after: string[];
-      beforeJson: any;
-      afterJson: any;
-    },
-    messageIndex: number
-  ) => {
-    if (!resumeId) return;
+  sectionKey: string,
+  editData: {
+    before: string[];
+    after: string[];
+    beforeJson: any;
+    afterJson: any;
+  },
+  messageIndex: number
+) => {
+  if (!resumeId) return;
 
-    try {
-      if (previewingSection === sectionKey) {
-        handleDismissPreview();
-      }
+  try {
+    if (previewingSection === sectionKey) {
+      handleDismissPreview();
+    }
 
-      const res = await acceptEdit(
-        sectionKey,
-        editData.afterJson,
-        editData.beforeJson,
-        resumeId
-      );
+    const res = await acceptEdit(
+      sectionKey,
+      editData.afterJson,
+      editData.beforeJson,
+      resumeId
+    );
 
-      if (!res.success) {
-        setToast({
-          message: res.message || "Failed to accept edit",
-          type: "error",
-        });
-        return;
-      }
-
-      setResumeJson(res.resumeJson);
-
-      setConversation((prev) =>
-        prev.map((msg, idx) =>
-          idx === messageIndex && msg.type === "edit" && msg.message
-            ? {
-                ...msg,
-                message: {
-                  ...msg.message,
-                  acceptedSections: [
-                    ...(msg.message.acceptedSections || []),
-                    sectionKey,
-                  ],
-                },
-              }
-            : msg
-        )
-      );
-
+    if (!res.success) {
       setToast({
-        message: `Successfully updated ${sectionKey}`,
-        type: "success",
-      });
-    } catch (err: any) {
-      setToast({
-        message: err.response?.data?.message || "Failed to accept edit",
+        message: res.message || "Failed to accept edit",
         type: "error",
       });
+      return;
     }
-  };
+
+   
+    setResumeJson(res.resumeJson);
+
+
+    setConversation((prev) =>
+      prev.map((msg, idx) =>
+        idx === messageIndex && msg.type === "edit" && msg.message
+          ? {
+              ...msg,
+              message: {
+                ...msg.message,
+                acceptedSections: [
+                  ...(msg.message.acceptedSections || []),
+                  sectionKey,
+                ],
+              },
+            }
+          : msg
+      )
+    );
+
+    onVersionBump();
+
+    setToast({
+      message: `Successfully updated ${sectionKey}`,
+      type: "success",
+    });
+  } catch (err: any) {
+    setToast({
+      message: err.response?.data?.message || "Failed to accept edit",
+      type: "error",
+    });
+  }
+};
+
 
   const handleRevert = async (
     sectionKey: string,
@@ -158,6 +164,9 @@ const ChatPanel: React.FC<ChatPanelProps> = ({
         message: `Reverted ${sectionKey}`,
         type: "success",
       });
+
+      onVersionBump();
+
     } catch (err: any) {
       setToast({
         message: err.response?.data?.message || "Revert is not possible",
