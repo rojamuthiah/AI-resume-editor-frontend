@@ -22,7 +22,7 @@ export default function Login() {
 
     login(res.user);
 
-    navigate("/templates/categories");
+    navigate("/home");
   } catch {
     setError("Invalid email or password");
   }
