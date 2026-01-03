@@ -5,7 +5,11 @@ import {
   useLocation
 } from "react-router-dom";
 
-import { Plus, MoreVertical, Edit2, Trash2 } from "lucide-react";
+import {
+  Plus,
+  Trash2,
+  Pencil
+} from "lucide-react";
 
 import {
   fetchResumes,
@@ -16,6 +20,7 @@ import {
 
 import CreateResumeDialog from "../components/CreateResumeDialog";
 import ResumeAnalyzerDrawer from "../components/ResumeAnalyzerDrawer";
+import AILoadingOverlay from "../components/AILoadingOverlay";
 
 interface ResumeItem {
   _id: string;
@@ -34,12 +39,15 @@ const ResumesPage: React.FC = () => {
 
   const [resumes, setResumes] = useState<ResumeItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [aiLoading, setAiLoading] = useState(false);
 
   const [openDialog, setOpenDialog] = useState(false);
-  const [editResume, setEditResume] = useState<ResumeItem | null>(null);
-  const [menuOpenId, setMenuOpenId] = useState<string | null>(null);
 
-  // 🔍 Analyzer state
+  // Inline rename
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+
+  // Analyzer
   const [analyzerOpen, setAnalyzerOpen] = useState(false);
   const [analyzerResume, setAnalyzerResume] = useState<ResumeItem | null>(null);
   const [analysisCache, setAnalysisCache] = useState<Record<string, any>>({});
@@ -47,12 +55,9 @@ const ResumesPage: React.FC = () => {
   const loadResumes = async () => {
     if (!templateKey || !category) return;
     setLoading(true);
-
     try {
       const res = await fetchResumes(templateKey, category);
       setResumes(res.data.resumes || []);
-    } catch (err) {
-      console.error("Failed to load resumes", err);
     } finally {
       setLoading(false);
     }
@@ -62,29 +67,55 @@ const ResumesPage: React.FC = () => {
     loadResumes();
   }, [templateKey, category]);
 
-  const handleCreate = async (name: string, description?: string) => {
+  /* ================= CREATE ================= */
+  const handleCreate = async (
+    name: string,
+    description?: string,
+    file?: File | null
+  ) => {
     if (!templateKey || !category) return;
 
-    const res = await createResume(templateKey, category, name, description);
+    try {
+      setAiLoading(true);
+      const res = await createResume(
+        templateKey,
+        category,
+        name,
+        description,
+        file
+      );
 
-    navigate(`/editor/${res.data.resumeId}`, {
-      state: {
-        fromResumes: location.pathname + location.search
-      }
-    });
+      navigate(`/editor/${res.data.resumeId}`, {
+        state: {
+          fromResumes: location.pathname + location.search
+        }
+      });
+    } finally {
+      setAiLoading(false);
+    }
   };
 
-  const handleRename = async (name: string, description?: string) => {
-    if (!editResume) return;
+  /* ================= RENAME ================= */
+  const startRename = (resume: ResumeItem) => {
+    setRenamingId(resume._id);
+    setRenameValue(resume.name);
+  };
 
-    await renameResume(editResume._id, name, description);
-    setEditResume(null);
+  const saveRename = async (resumeId: string) => {
+    if (!renameValue.trim()) return;
+    await renameResume(resumeId, renameValue.trim());
+    setRenamingId(null);
     loadResumes();
   };
 
+  const cancelRename = () => {
+    setRenamingId(null);
+    setRenameValue("");
+  };
+
+  /* ================= DELETE ================= */
   const handleDelete = async (resumeId: string) => {
     if (!confirm("Delete this resume permanently?")) return;
-
     await deleteResume(resumeId);
     setResumes(prev => prev.filter(r => r._id !== resumeId));
   };
@@ -106,18 +137,17 @@ const ResumesPage: React.FC = () => {
     );
   }
 
-  /* ================= EMPTY STATE ================= */
+  /* ================= EMPTY ================= */
   if (resumes.length === 0) {
     return (
       <>
         <div className="min-h-screen flex flex-col items-center justify-center">
           <button
             onClick={() => setOpenDialog(true)}
-            className="w-20 h-20 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700 transition"
+            className="w-20 h-20 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700"
           >
             <Plus size={36} />
           </button>
-
           <p className="mt-4 text-gray-600 text-sm">
             Create your first resume
           </p>
@@ -126,84 +156,116 @@ const ResumesPage: React.FC = () => {
         <CreateResumeDialog
           open={openDialog}
           onClose={() => setOpenDialog(false)}
-          onCreate={(name, description) => {
+          onCreate={(n, d, f) => {
             setOpenDialog(false);
-            handleCreate(name, description);
+            handleCreate(n, d, f);
           }}
         />
       </>
     );
   }
 
-  /* ================= LIST STATE ================= */
   return (
     <>
       <div className="min-h-screen px-8 py-6">
         {/* HEADER */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-semibold">Your Resumes</h1>
-
           <button
             onClick={() => setOpenDialog(true)}
-            className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700 transition"
-            title="Create Resume"
+            className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center"
           >
             <Plus size={20} />
           </button>
         </div>
 
-        {/* RESUME GRID */}
+        {/* GRID – ORIGINAL */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {resumes.map(resume => (
             <div
               key={resume._id}
-              onClick={() =>
-                navigate(`/editor/${resume._id}`, {
-                  state: {
-                    fromResumes: location.pathname + location.search
-                  }
-                })
-              }
-              className="relative cursor-pointer bg-white border rounded-xl p-6 hover:shadow transition"
+              className="bg-white border rounded-xl p-6 hover:shadow transition group cursor-pointer"
+              onClick={() => {
+                if (renamingId !== resume._id) {
+                  navigate(`/editor/${resume._id}`, {
+                    state: {
+                      fromResumes:
+                        location.pathname + location.search
+                    }
+                  });
+                }
+              }}
             >
-              {/* MENU */}
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setMenuOpenId(menuOpenId === resume._id ? null : resume._id);
-                }}
-                className="absolute top-3 right-3 p-1 rounded hover:bg-gray-100"
-              >
-                <MoreVertical size={18} />
-              </button>
+              {/* NAME ROW */}
+              {/* NAME ROW */}
+<div
+  className="flex items-center justify-between mb-1"
+  onClick={(e) => e.stopPropagation()}
+>
+  {renamingId === resume._id ? (
+    <div className="flex items-center gap-2 w-full">
+      <input
+        autoFocus
+        value={renameValue}
+        onChange={(e) => setRenameValue(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            saveRename(resume._id);
+          }
+          if (e.key === "Escape") {
+            cancelRename();
+          }
+        }}
+        className="flex-1 border rounded px-2 py-1 text-sm"
+      />
 
-              {menuOpenId === resume._id && (
-                <div
-                  onClick={(e) => e.stopPropagation()}
-                  className="absolute top-10 right-3 bg-white border rounded shadow w-36 z-10"
-                >
-                  <button
-                    onClick={() => {
-                      setEditResume(resume);
-                      setMenuOpenId(null);
-                    }}
-                    className="w-full px-3 py-2 text-sm flex items-center gap-2 hover:bg-gray-50"
-                  >
-                    <Edit2 size={14} /> Rename
-                  </button>
+      {/* SAVE */}
+      <button
+        onClick={() => saveRename(resume._id)}
+        className="text-green-600 hover:text-green-700"
+        title="Save"
+      >
+        ✓
+      </button>
 
-                  <button
-                    onClick={() => handleDelete(resume._id)}
-                    className="w-full px-3 py-2 text-sm flex items-center gap-2 text-red-600 hover:bg-red-50"
-                  >
-                    <Trash2 size={14} /> Delete
-                  </button>
-                </div>
-              )}
+      {/* CANCEL */}
+      <button
+        onClick={cancelRename}
+        className="text-gray-400 hover:text-gray-600"
+        title="Cancel"
+      >
+        ✕
+      </button>
+    </div>
+  ) : (
+    <>
+      <div className="flex items-center gap-2">
+        <h2 className="font-medium text-lg">
+          {resume.name}
+        </h2>
+        <button
+          onClick={() => startRename(resume)}
+          className="opacity-0 group-hover:opacity-100 transition"
+          title="Rename"
+        >
+          <Pencil size={14} />
+        </button>
+      </div>
 
-              <h2 className="font-medium text-lg mb-1">
-                {resume.name}
-              </h2>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          handleDelete(resume._id);
+        }}
+        className="opacity-0 group-hover:opacity-100 transition text-gray-400 hover:text-red-600"
+        title="Delete resume"
+      >
+        <Trash2 size={16} />
+      </button>
+    </>
+  )}
+</div>
+
 
               {resume.description && (
                 <p className="text-sm text-gray-500 mb-3 line-clamp-2">
@@ -216,7 +278,6 @@ const ResumesPage: React.FC = () => {
                 {new Date(resume.lastUpdated).toLocaleString()}
               </p>
 
-              {/* ANALYZER */}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
@@ -225,41 +286,30 @@ const ResumesPage: React.FC = () => {
                 }}
                 className="mt-4 text-sm text-blue-600 hover:underline"
               >
-                Analyze Resume
+                Analyze Resume with AI
               </button>
             </div>
           ))}
         </div>
 
-        {/* CREATE DIALOG */}
         <CreateResumeDialog
           open={openDialog}
           onClose={() => setOpenDialog(false)}
-          onCreate={(name, description) => {
+          onCreate={(n, d, f) => {
             setOpenDialog(false);
-            handleCreate(name, description);
+            handleCreate(n, d, f);
           }}
-        />
-
-        {/* RENAME DIALOG */}
-        <CreateResumeDialog
-          open={!!editResume}
-          title="Rename Resume"
-          initialName={editResume?.name}
-          initialDescription={editResume?.description}
-          onClose={() => setEditResume(null)}
-          onCreate={(name, description) =>
-            handleRename(name, description)
-          }
         />
       </div>
 
-      {/* ANALYZER DRAWER */}
+      {/* ANALYZER */}
       <ResumeAnalyzerDrawer
         open={analyzerOpen}
         resume={analyzerResume}
         cachedResult={
-          analyzerResume ? analysisCache[analyzerResume._id] : null
+          analyzerResume
+            ? analysisCache[analyzerResume._id]
+            : null
         }
         onAnalyzeComplete={(result) => {
           if (!analyzerResume) return;
@@ -274,6 +324,9 @@ const ResumesPage: React.FC = () => {
           setAnalyzerResume(null);
         }}
       />
+
+      {/* AI LOADING */}
+      {aiLoading && <AILoadingOverlay open />}
     </>
   );
 };

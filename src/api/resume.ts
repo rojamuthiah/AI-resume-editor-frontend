@@ -7,14 +7,30 @@ export const createResume = (
   templateKey: string,
   category: string,
   name: string,
-  description?: string
-) =>
-  api.post("/resume", {
-    templateKey,
-    category,
-    name,
-    description,
+  description?: string,
+  file?: File | null
+) => {
+  const formData = new FormData();
+
+  formData.append("templateKey", templateKey);
+  formData.append("category", category);
+  formData.append("name", name);
+
+  if (description) {
+    formData.append("description", description);
+  }
+
+  if (file) {
+    formData.append("resumeFile", file);
+  }
+
+  return api.post("/resume", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data"
+    }
   });
+};
+
 
 /**
  * Get all resumes
@@ -31,7 +47,7 @@ export const fetchResumeById = (resumeId: string) =>
   api.get(`/resume/${resumeId}`);
 
 /* =========================================================
-   ✅ NEW: Render HTML (LIVE PREVIEW)
+   NEW: Render HTML (LIVE PREVIEW)
    ========================================================= */
 export const renderResumeHtml = (
   resumeId: string,
