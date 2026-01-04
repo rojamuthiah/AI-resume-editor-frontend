@@ -1,6 +1,8 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
+const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 interface Props {
   template: {
     name: string;
@@ -19,7 +21,7 @@ const TemplateCard: React.FC<Props> = ({ template, category }) => {
       {/* Preview */}
       <div className="bg-gray-100 border-b">
         <img
-          src={`http://localhost:5000${template.previewUrl}`}
+          src={`${BASE_URL}${template.previewUrl}`}
           alt={template.name}
           className="w-full h-[280px] object-contain p-4"
         />
