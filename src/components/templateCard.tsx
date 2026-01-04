@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const STATIC_BASE = import.meta.env.VITE_STATIC_BASE_URL;
 
 interface Props {
   template: {
@@ -13,15 +13,18 @@ interface Props {
   category: string;
 }
 
+
+
 const TemplateCard: React.FC<Props> = ({ template, category }) => {
   const navigate = useNavigate();
+
 
   return (
     <div className="bg-white rounded-xl shadow hover:shadow-lg transition overflow-hidden flex flex-col">
       {/* Preview */}
       <div className="bg-gray-100 border-b">
         <img
-          src={`${BASE_URL}${template.previewUrl}`}
+          src={`${STATIC_BASE}${template.previewUrl}`}
           alt={template.name}
           className="w-full h-[280px] object-contain p-4"
         />
