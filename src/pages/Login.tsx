@@ -8,30 +8,30 @@ export default function Login() {
   const navigate = useNavigate();
   const { login } = useContext(AuthContext);
 
-  const [form, setForm] = useState({ email: "", password: "" });
+  const [form, setForm] = useState({
+    email: "",
+    password: "",
+  });
+
   const [error, setError] = useState("");
 
-  function handleChange(e) {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm({ ...form, [e.target.name]: e.target.value });
   }
 
-  async function handleSubmit(e) {
-  e.preventDefault();
-  try {
-    const res = await loginUser(form);
-
-    login(res.user);
-
-    navigate("/home");
-  } catch {
-    setError("Invalid email or password");
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    try {
+      const res = await loginUser(form);
+      login(res.user);
+      navigate("/home");
+    } catch {
+      setError("Invalid email or password");
+    }
   }
-}
-
 
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
-
       {/* DESKTOP LEFT BRANDING */}
       <div className="hidden lg:flex bg-black text-white flex-col justify-center px-20">
         <div className="max-w-md">
@@ -51,7 +51,6 @@ export default function Login() {
 
       {/* RIGHT SIDE */}
       <div className="bg-black min-h-screen px-4">
-
         {/* MOBILE HEADER */}
         <div className="lg:hidden w-full bg-black px-4 pt-6 pb-8">
           <div className="max-w-md mx-auto">
@@ -65,18 +64,25 @@ export default function Login() {
           </div>
         </div>
 
-        {/* CARD WRAPPER */}
-        <div className="flex justify-center mt-24 lg:mt-0 lg:min-h-screen lg:items-center">
+        {/* LOGIN CARD */}
+        <div className="flex justify-center mt-10 lg:mt-0 lg:min-h-screen lg:items-center">
           <div className="w-full max-w-md bg-white shadow-lg rounded-xl p-8">
-            <h2 className="text-3xl font-bold text-center mb-6">Login</h2>
+            <h2 className="text-3xl font-bold text-center mb-6">
+              Login
+            </h2>
 
             {error && (
-              <p className="text-red-600 text-center mb-4">{error}</p>
+              <p className="text-red-600 text-center mb-4">
+                {error}
+              </p>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
+              {/* EMAIL */}
               <div>
-                <label className="font-medium text-gray-700">Email</label>
+                <label className="font-medium text-gray-700">
+                  Email
+                </label>
                 <input
                   type="email"
                   name="email"
@@ -87,11 +93,15 @@ export default function Login() {
                 />
               </div>
 
+              {/* PASSWORD */}
               <div>
-                <label className="font-medium text-gray-700">Password</label>
+                <label className="font-medium text-gray-700">
+                  Password
+                </label>
                 <input
                   type="password"
                   name="password"
+                  autoComplete="current-password"
                   onChange={handleChange}
                   className="mt-2 w-full p-3 border rounded-lg focus:ring-2 focus:ring-black"
                   placeholder="••••••••"
@@ -99,6 +109,7 @@ export default function Login() {
                 />
               </div>
 
+              {/* SUBMIT */}
               <button
                 type="submit"
                 className="w-full bg-black text-white py-3 rounded-lg hover:opacity-90 transition"

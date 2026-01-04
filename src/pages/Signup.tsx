@@ -5,30 +5,43 @@ import { Logo } from "../assets/AppLogo";
 
 export default function Signup() {
   const navigate = useNavigate();
+
   const [form, setForm] = useState({
     name: "",
     email: "",
     password: "",
   });
+
   const [error, setError] = useState("");
 
-  function handleChange(e) {
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm({ ...form, [e.target.name]: e.target.value });
+    setError(""); // clear error while typing
   }
 
-  async function handleSubmit(e) {
+  function isValidEmail(email: string) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    // 🔴 Frontend email validation
+    if (!isValidEmail(form.email)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
     try {
       await registerUser(form);
       navigate("/login");
-    } catch (err) {
+    } catch (err: any) {
       setError(err.response?.data?.message || "Registration failed");
     }
   }
 
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
-
       {/* DESKTOP LEFT BRANDING */}
       <div className="hidden lg:flex bg-black text-white flex-col justify-center px-20">
         <div className="max-w-md">
@@ -48,7 +61,6 @@ export default function Signup() {
 
       {/* RIGHT SIDE */}
       <div className="bg-black min-h-screen px-4">
-
         {/* MOBILE HEADER */}
         <div className="lg:hidden w-full bg-black px-4 pt-6 pb-8">
           <div className="max-w-md mx-auto">
@@ -62,7 +74,7 @@ export default function Signup() {
           </div>
         </div>
 
-        {/* CARD WRAPPER */}
+        {/* CARD */}
         <div className="flex justify-center mt-10 lg:mt-0 lg:min-h-screen lg:items-center">
           <div className="w-full max-w-md bg-white shadow-lg rounded-xl p-8">
             <h2 className="text-3xl font-bold text-center mb-6">
@@ -70,12 +82,17 @@ export default function Signup() {
             </h2>
 
             {error && (
-              <p className="text-red-600 text-center mb-4">{error}</p>
+              <p className="text-red-600 text-center mb-4">
+                {error}
+              </p>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
+              {/* NAME */}
               <div>
-                <label className="font-medium text-gray-700">Full Name</label>
+                <label className="font-medium text-gray-700">
+                  Full Name
+                </label>
                 <input
                   type="text"
                   name="name"
@@ -86,8 +103,11 @@ export default function Signup() {
                 />
               </div>
 
+              {/* EMAIL */}
               <div>
-                <label className="font-medium text-gray-700">Email</label>
+                <label className="font-medium text-gray-700">
+                  Email
+                </label>
                 <input
                   type="email"
                   name="email"
@@ -98,8 +118,11 @@ export default function Signup() {
                 />
               </div>
 
+              {/* PASSWORD */}
               <div>
-                <label className="font-medium text-gray-700">Password</label>
+                <label className="font-medium text-gray-700">
+                  Password
+                </label>
                 <input
                   type="password"
                   name="password"
