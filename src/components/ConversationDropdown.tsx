@@ -64,7 +64,9 @@ const ConversationDropdown: React.FC<ConversationDropdownProps> = ({
                    bg-white hover:bg-gray-50 transition"
       >
         <span className="truncate font-medium text-gray-800 text-xs sm:text-sm">
-          {currentConversationTitle || "New conversation"}
+          {currentConversationId && currentConversationTitle 
+            ? currentConversationTitle 
+            : "New conversation"}
         </span>
 
         <svg

@@ -278,7 +278,7 @@ const ResumesPage: React.FC = () => {
                 {new Date(resume.lastUpdated).toLocaleString()}
               </p>
 
-              <button
+              {/* <button
                 onClick={(e) => {
                   e.stopPropagation();
                   setAnalyzerResume(resume);
@@ -287,7 +287,7 @@ const ResumesPage: React.FC = () => {
                 className="mt-4 text-sm text-blue-600 hover:underline"
               >
                 Analyze Resume with AI
-              </button>
+              </button> */}
             </div>
           ))}
         </div>

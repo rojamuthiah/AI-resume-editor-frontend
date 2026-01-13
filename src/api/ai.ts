@@ -69,13 +69,28 @@ export const revertEdit = async (
 /**
  * RESUME ANALYZER
  */
+// Run analysis
 export const analyzeResume = async (
   resumeId: string,
-  jobDescription: string
+  jobDescription: string,
+  conversationId?: string
 ) => {
   const response = await api.post("/ai/analyse", {
     resumeId,
-    jobDescription
+    jobDescription,
+    conversationId
   });
   return response.data;
 };
+
+// Fetch analysis history
+export const getResumeAnalyses = async (
+  resumeId: string,
+  conversationId?: string
+) => {
+  const response = await api.get(`/ai/analyse/${resumeId}`, {
+    params: conversationId ? { conversationId } : {}
+  });
+  return response.data;
+};
+

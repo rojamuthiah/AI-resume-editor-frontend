@@ -4,6 +4,10 @@ import { AuthContext } from "../context/AuthContext";
 import { useNavigate, Link } from "react-router-dom";
 import { Logo } from "../assets/AppLogo";
 
+function isMobilePhone() {
+  return window.innerWidth < 768; // phones only
+}
+
 export default function Login() {
   const navigate = useNavigate();
   const { login } = useContext(AuthContext);
@@ -14,6 +18,8 @@ export default function Login() {
   });
 
   const [error, setError] = useState("");
+  const [showDisclaimer, setShowDisclaimer] = useState(false);
+  const [loginAllowed, setLoginAllowed] = useState(false);
 
   function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -24,15 +30,26 @@ export default function Login() {
     try {
       const res = await loginUser(form);
       login(res.user);
-      navigate("/home");
+
+      if (isMobilePhone()) {
+        setShowDisclaimer(true);
+      } else {
+        navigate("/home");
+      }
     } catch {
       setError("Invalid email or password");
     }
   }
 
+  function handleContinue() {
+    setShowDisclaimer(false);
+    setLoginAllowed(true);
+    navigate("/home");
+  }
+
   return (
     <div className="min-h-screen grid grid-cols-1 lg:grid-cols-2">
-      {/* DESKTOP LEFT BRANDING */}
+      {/* LEFT BRANDING */}
       <div className="hidden lg:flex bg-black text-white flex-col justify-center px-20">
         <div className="max-w-md">
           <div className="w-[320px] mb-10">
@@ -78,7 +95,6 @@ export default function Login() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              {/* EMAIL */}
               <div>
                 <label className="font-medium text-gray-700">
                   Email
@@ -93,7 +109,6 @@ export default function Login() {
                 />
               </div>
 
-              {/* PASSWORD */}
               <div>
                 <label className="font-medium text-gray-700">
                   Password
@@ -109,7 +124,6 @@ export default function Login() {
                 />
               </div>
 
-              {/* SUBMIT */}
               <button
                 type="submit"
                 className="w-full bg-black text-white py-3 rounded-lg hover:opacity-90 transition"
@@ -127,6 +141,32 @@ export default function Login() {
           </div>
         </div>
       </div>
+
+      {/* DISCLAIMER MODAL */}
+      {showDisclaimer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="bg-white rounded-xl max-w-sm w-full p-6 text-center">
+            <h3 className="text-xl font-bold mb-3">
+              Limited Mobile Experience
+            </h3>
+
+            <p className="text-gray-600 text-sm mb-6">
+              Some features are limited on mobile phones.
+              <br /><br />
+              PDF preview is not supported.
+              <br />
+              For the best experience, please use a laptop or tablet.
+            </p>
+
+            <button
+              onClick={handleContinue}
+              className="w-full bg-black text-white py-3 rounded-lg hover:opacity-90 transition"
+            >
+              Continue Anyway
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

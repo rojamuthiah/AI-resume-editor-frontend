@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import ChatPanel from "../components/ChatPanel";
-import ResumeHtmlPreview from "../components/ResumeHtmlPreview";
+import ResumePreview from "../components/ResumePreview";
 import Navbar from "../components/Navbar";
 import api from "../api/api";
 import {
@@ -118,10 +118,12 @@ const EditorPage = () => {
 
           {isPreviewVisible && (
             <div className="h-[30vh] bg-[#f5f7fb] border-b relative overflow-hidden">
-              <ResumeHtmlPreview
+              <ResumePreview
                 resumeId={resumeId!}
+                resumeJson={resumeJson}
                 previewJson={previewJson}
-                version={resumeVersion}
+                editMode={false}
+                isPreviewMode={!!previewJson}
               />
 
               <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-2 z-20">
@@ -160,14 +162,16 @@ const EditorPage = () => {
           {showFullPreview && (
             <div className="fixed inset-0 bg-black/40 z-50">
               <div className="absolute inset-0 bg-[#f5f7fb]">
-                <ResumeHtmlPreview
+                <ResumePreview
                   resumeId={resumeId!}
+                  resumeJson={resumeJson}
                   previewJson={previewJson}
-                  version={resumeVersion}
+                  editMode={false}
+                  isPreviewMode={!!previewJson}
                 />
                 <button
                   onClick={() => setShowFullPreview(false)}
-                  className="absolute top-14 left-1/2 -translate-x-1/2 bg-white shadow px-4 py-1 text-xs rounded-full"
+                  className="absolute top-14 left-1/2 -translate-x-1/2 bg-white shadow px-4 py-1 text-xs rounded-full z-30"
                 >
                   ✕ Close
                 </button>
@@ -201,10 +205,12 @@ const EditorPage = () => {
 
           {/* RIGHT — FULL HEIGHT PREVIEW */}
           <div className="w-1/2 bg-[#f5f7fb] overflow-hidden">
-            <ResumeHtmlPreview
+            <ResumePreview
               resumeId={resumeId!}
+              resumeJson={resumeJson}
               previewJson={previewJson}
-              version={resumeVersion}
+              editMode={false}
+              isPreviewMode={!!previewJson}
             />
           </div>
         </>
